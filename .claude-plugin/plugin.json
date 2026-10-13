@@ -1,6 +1,6 @@
 {
   "name": "phone-drop",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Drop files between your computer and your phone over local Wi-Fi: scan a QR code to download to the phone or upload from it. Optional 'open in app' handlers, with Feather (.ipa sideloading) built in.",
   "author": {
     "name": "jorranMLGN",

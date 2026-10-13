@@ -1,6 +1,8 @@
 // Passcode lock screen shown on the phone before a transfer, when a passcode is set.
 // On success the server answers with the URL to continue to (download, app link or upload page).
 
+import { FAVICON } from "./brand.mjs";
+
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 const LOCK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="16" r="1.2" fill="currentColor"/></svg>`;
@@ -10,6 +12,7 @@ export function renderGatePage({ computer, base, numeric, what }) {
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <title>Passcode · ${esc(computer)}</title>
+${FAVICON}
 <style>
 :root{--bg:#f3f3f7;--fg:#16161a;--muted:#6c6c74;--card:#fff;--line:#e2e2ea;--accent:#5a64e8;--accent2:#8b5cf6;--soft:#eef0ff;--err:#d64545;--shadow:0 1px 2px #0000000d,0 8px 24px #0000000f}
 @media (prefers-color-scheme:dark){:root{--bg:#0e0e12;--fg:#f2f2f6;--muted:#9a9aa6;--card:#1a1a20;--line:#2e2e38;--accent:#8f97ff;--accent2:#b18cff;--soft:#23253d;--err:#ff7070;--shadow:0 1px 2px #0006,0 8px 24px #0004}}

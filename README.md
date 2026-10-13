@@ -391,6 +391,7 @@ scripts/phone-drop.mjs            server, certificates, config
 scripts/qr-page.mjs               QR page template (shown on the computer)
 scripts/upload-page.mjs           upload page (shown on the phone)
 scripts/gate-page.mjs             passcode lock screen (shown on the phone)
+scripts/brand.mjs                 favicon and credits
 docs/render-screenshots.mjs       regenerates docs/images (npm run screenshots)
 ```
 

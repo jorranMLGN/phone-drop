@@ -2,6 +2,8 @@
 // Files go up one at a time as raw PUT bodies (no multipart parsing needed on the server),
 // using XHR for per-file progress.
 
+import { FAVICON } from "./brand.mjs";
+
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 const ICON = {
@@ -20,6 +22,7 @@ export function renderUploadPage({ computer, base, secure, key = "" }) {
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <title>Send to ${esc(computer)}</title>
+${FAVICON}
 <style>
 :root{--bg:#f3f3f7;--fg:#16161a;--muted:#6c6c74;--card:#fff;--line:#e7e7ee;--accent:#5a64e8;--accent2:#8b5cf6;--soft:#eef0ff;--ok:#22a05b;--oksoft:#e3f6ea;--err:#d64545;--errsoft:#fde8e8;--shadow:0 1px 2px #0000000d,0 8px 24px #0000000f}
 @media (prefers-color-scheme:dark){:root{--bg:#0e0e12;--fg:#f2f2f6;--muted:#9a9aa6;--card:#1a1a20;--line:#2a2a33;--accent:#8f97ff;--accent2:#b18cff;--soft:#23253d;--ok:#4cc27e;--oksoft:#16301f;--err:#ff7070;--errsoft:#3a1a1a;--shadow:0 1px 2px #0006,0 8px 24px #0004}}

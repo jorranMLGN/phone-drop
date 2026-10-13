@@ -1,6 +1,6 @@
 // Renders the QR page that the computer shows for the phone to scan.
 import QRCode from "qrcode";
-import { CREDITS, CREDITS_CSS, FAVICON } from "./brand.mjs";
+import { CREDITS, CREDITS_CSS, FAVICON, MOTION_CSS } from "./brand.mjs";
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
@@ -18,6 +18,13 @@ ${FAVICON}
 @media (prefers-color-scheme:dark){:root{--bg:#111113;--fg:#f2f2f5;--muted:#9a9aa2;--card:#1c1c20;--accent:#9aa2ff}}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;display:grid;place-items:center;min-height:100vh;padding-bottom:40px;box-sizing:border-box}
 ${CREDITS_CSS}
+${MOTION_CSS}
+main{animation:pd-rise .6s cubic-bezier(.2,.8,.2,1) both}
+.qr{animation:pd-ring 2.8s ease-out 1s infinite}
+@keyframes pd-ring{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 45%,transparent)}70%,100%{box-shadow:0 0 0 18px transparent}}
+h1,.file{animation:pd-fade .5s .1s both}
+li{animation:pd-rise .45s cubic-bezier(.2,.8,.2,1) both}li:nth-child(1){animation-delay:.25s}li:nth-child(2){animation-delay:.35s}li:nth-child(3){animation-delay:.45s}li:nth-child(4){animation-delay:.55s}
+code,.pass{animation:pd-fade .6s .6s both}.credits{animation:pd-fade .8s .8s both}
 main{background:var(--card);border-radius:20px;padding:32px 36px;max-width:440px;margin:16px;box-shadow:0 10px 40px #0002;text-align:center}
 h1{font-size:20px;margin:0 0 4px}.file{color:var(--muted);font-size:14px;word-break:break-all}
 .qr{background:#fff;border-radius:14px;padding:10px;width:280px;max-width:100%;margin:16px auto 0;box-sizing:border-box}

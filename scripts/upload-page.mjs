@@ -2,7 +2,7 @@
 // Files go up one at a time as raw PUT bodies (no multipart parsing needed on the server),
 // using XHR for per-file progress.
 
-import { FAVICON } from "./brand.mjs";
+import { FAVICON, MOTION_CSS } from "./brand.mjs";
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
@@ -76,6 +76,15 @@ li.err button.retry{all:unset;color:var(--accent);font-weight:600;font-size:13px
 @keyframes pop{from{transform:scale(.3);opacity:0}}
 .finish h2{margin:0 0 6px;font-size:24px}.finish p{margin:0;color:var(--muted)}
 body.done main>*:not(.finish),body.done .dock{display:none}body.done .finish{display:block}
+${MOTION_CSS}
+header{animation:pd-rise .5s cubic-bezier(.2,.8,.2,1) both}
+.pick{animation:pd-rise .5s .08s cubic-bezier(.2,.8,.2,1) both;transition:transform .15s}
+.pick .ic{animation:pd-bob 2.6s ease-in-out 1s infinite}
+.dock{animation:pd-fade .5s .2s both}
+.total i{background-size:200% 100%;background-image:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent))}
+body.busy .total i{animation:pd-shimmer 1.4s linear infinite}
+@keyframes pd-shimmer{to{background-position:-200% 0}}
+.finish h2,.finish p{animation:pd-rise .5s .15s cubic-bezier(.2,.8,.2,1) both}
 </style></head><body><main>
 <header>
 <div class="logo">${ICON.logo}</div>
@@ -112,7 +121,7 @@ function refresh(){
   $("summary").classList.add("on");$("total").classList.add("on");
   $("count").textContent=ok+" of "+items.length+" sent · "+fmt(total);
   const p=total?Math.floor(100*sent/total):100;$("pct").textContent=p+"%";$("total").firstElementChild.style.width=p+"%";
-  fin.disabled=busy;fin.textContent=busy?"Uploading…":"Done";
+  fin.disabled=busy;fin.textContent=busy?"Uploading…":"Done";document.body.classList.toggle("busy",busy);
 }
 function put(it){return new Promise(res=>{
   const x=new XMLHttpRequest(),li=it.li,bar=li.querySelector(".bar i"),sub=li.querySelector(".sub");

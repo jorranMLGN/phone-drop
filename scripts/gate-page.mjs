@@ -1,7 +1,7 @@
 // Passcode lock screen shown on the phone before a transfer, when a passcode is set.
 // On success the server answers with the URL to continue to (download, app link or upload page).
 
-import { FAVICON } from "./brand.mjs";
+import { FAVICON, MOTION_CSS } from "./brand.mjs";
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
@@ -31,6 +31,12 @@ button{display:block;width:100%;margin-top:14px;font:inherit;font-size:17px;font
 button:disabled{opacity:.6}
 .msg{min-height:22px;margin-top:12px;font-size:14px;color:var(--err)}
 .foot{margin-top:22px;font-size:13px;color:var(--muted)}
+${MOTION_CSS}
+.lock{animation:pd-rise .5s cubic-bezier(.2,.8,.2,1) both}
+h1,main>p{animation:pd-fade .5s .1s both}
+form{animation:pd-rise .5s .15s cubic-bezier(.2,.8,.2,1) both;transition:box-shadow .3s}
+form.ok{box-shadow:0 0 0 3px #22a05b55,var(--shadow)}form.ok input{border-color:#22a05b}
+.foot{animation:pd-fade .6s .4s both}
 </style></head><body><main>
 <div class="lock">${LOCK}</div>
 <h1>Enter passcode</h1>
@@ -47,7 +53,7 @@ const f=document.getElementById("f"),c=document.getElementById("c"),b=document.g
 f.onsubmit=async e=>{e.preventDefault();if(!c.value.trim())return;b.disabled=true;m.textContent="";
   try{const r=await fetch(${JSON.stringify(base)}+"unlock",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code:c.value.trim()})});
     const j=await r.json().catch(()=>({}));
-    if(r.ok&&j.next){b.textContent="Unlocked ✓";location.href=j.next;return;}
+    if(r.ok&&j.next){b.textContent="Unlocked ✓";f.classList.add("ok");setTimeout(()=>location.href=j.next,350);return;}
     c.classList.remove("bad");void c.offsetWidth;c.classList.add("bad");c.value="";
     m.textContent=j.error||"Wrong passcode";
   }catch{m.textContent="Can't reach the computer. Is the transfer still running?";}

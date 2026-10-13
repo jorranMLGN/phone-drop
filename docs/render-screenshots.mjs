@@ -56,7 +56,7 @@ busy=true;refresh();
 
 const shoot = (html, png, scheme, size) => {
 	const file = path.join(pagesDir, path.basename(png, ".png") + ".html");
-	fs.writeFileSync(file, html);
+	fs.writeFileSync(file, html.replace("</head>", "<style>*,*::before,*::after{animation:none!important;transition:none!important}</style></head>"));
 	execFileSync(browser, [
 		"--headless=new",
 		"--disable-gpu",
@@ -87,7 +87,7 @@ for (const scheme of ["light", "dark"]) {
 for (const [name, page] of Object.entries(pages)) {
 	for (const scheme of ["light", "dark"]) {
 		const html = path.join(pagesDir, `${name}.html`);
-		fs.writeFileSync(html, await renderQrPage(page));
+		fs.writeFileSync(html, (await renderQrPage(page)).replace("</head>", "<style>*,*::before,*::after{animation:none!important;transition:none!important}</style></head>"));
 		const png = path.join(imagesDir, `${name}${scheme === "dark" ? "-dark" : ""}.png`);
 		execFileSync(browser, [
 			"--headless=new",

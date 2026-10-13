@@ -8,6 +8,12 @@ export const AUTHOR = { name: "jorranMLGN", profile: "https://github.com/jorranM
 
 export const CREDITS = `<footer class="credits">Made by <a href="${AUTHOR.profile}" target="_blank" rel="noopener">${AUTHOR.name}</a> · <a href="${AUTHOR.repo}" target="_blank" rel="noopener">phone-drop on GitHub</a></footer>`;
 
+// Minimal motion shared by all pages. Everything is switched off for "reduce motion" users.
+export const MOTION_CSS = `@keyframes pd-rise{from{opacity:0;transform:translateY(14px)}}
+@keyframes pd-fade{from{opacity:0}}
+@keyframes pd-bob{50%{transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}`;
+
 export const CREDITS_CSS = `.credits{position:fixed;left:0;right:0;bottom:0;padding:10px 16px calc(10px + env(safe-area-inset-bottom));text-align:center;font-size:12.5px;color:var(--muted)}
 .credits a{color:inherit;text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:1px}
 .credits a:hover{color:var(--accent)}`;

@@ -393,7 +393,7 @@ async function receive() {
 		if (req.method === "GET" && url.pathname === base) {
 			console.log(`Upload page opened by ${who}`);
 			res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
-			return res.end(renderUploadPage({ computer: os.hostname(), base }));
+			return res.end(renderUploadPage({ computer: os.hostname(), base, secure }));
 		}
 		if (req.method === "POST" && url.pathname === `${base}done`) {
 			res.writeHead(200).end("ok");

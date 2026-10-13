@@ -8,15 +8,25 @@ Claude:  starts a one-shot server and opens a QR page in your browser
 Phone:   Camera → scan → Download → done
 
 You:     "let me upload some photos from my phone"
-Phone:   Camera → scan → choose photos → Upload → they land in ~/Downloads
+Phone:   Camera → scan → choose photos → they upload and land in ~/Downloads
 ```
 
-<p align="center">
+<table align="center">
+<tr>
+<td align="center" valign="top"><b>Computer → phone</b><br><sub>Scan, tap Download</sub><br><br>
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/download-page-dark.png">
-    <img src="docs/images/download-page.png" width="360" alt="The 'Download to your phone' page: a QR code with three steps underneath">
+    <img src="docs/images/download-page.png" width="300" alt="The 'Download to your phone' page: a QR code with three steps underneath">
   </picture>
-</p>
+</td>
+<td align="center" valign="top"><b>Phone → computer</b><br><sub>Scan, pick photos, they upload</sub><br><br>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/phone-upload-dark.png">
+    <img src="docs/images/phone-upload.png" width="230" alt="The upload page on the phone, with photos and files uploading">
+  </picture>
+</td>
+</tr>
+</table>
 
 - **Both directions:** computer → phone (download) and phone → computer (upload).
 - **Zero setup:** works with any phone (iPhone or Android) and any file type. Nothing to install on the phone.
@@ -127,9 +137,11 @@ Claude opens a QR page on your computer:
 </p>
 
 1. Scan the QR code with your phone's **Camera** and open the link. The upload page on the right opens.
-2. Tap **Choose photos or files**. Pick from your photo library, camera or Files, and select as many as you like.
-3. Tap **Upload**. Each file shows its own progress bar.
+2. Tap **Choose photos or files** and pick from your photo library, the camera or Files. Select as many as you like.
+3. They **upload straight away**. You see a thumbnail and progress bar for each file, plus the total. Want more? Pick again; they join the queue.
 4. Tap **Done** when you're finished.
+
+The page shows your computer's name and whether the connection is **Encrypted** (after the [HTTPS setup](#optional-one-time-https-setup)) or plain **Local Wi-Fi**. If an upload fails, tap **Retry** next to it.
 
 The files land in your **Downloads** folder, or in the folder you named or [configured](#configuration).
 

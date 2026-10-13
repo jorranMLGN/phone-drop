@@ -45,7 +45,7 @@ export const STEPS = {
 	],
 	receive: [
 		"Scan with your phone's <b>Camera</b> (same Wi-Fi) and open the link.",
-		"Tap <b>Choose photos or files</b>, pick what you want, then <b>Upload</b>.",
+		"Tap <b>Choose photos or files</b>. They upload straight away.",
 		"Tap <b>Done</b> when finished. Files appear in the folder above.",
 	],
 	app: (name) => [

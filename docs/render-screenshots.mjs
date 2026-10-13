@@ -36,12 +36,22 @@ const browser =
 if (!browser) throw new Error("No Chrome/Edge found; set CHROME=/path/to/browser");
 
 // The upload page as the phone sees it, with a few files mid-upload (static demo state).
+// The upload page as the phone sees it, with a few files mid-upload (static demo state).
 const phoneDemo = (html) =>
-	html.replace("</body>", `<script>
-const items=[["IMG_2041.JPG","Sent ✓",100,"ok"],["IMG_2042.JPG","Sent ✓",100,"ok"],["Screen Recording 2026-10-12.mov","64%",64,""],["invoice-october.pdf","1.2 MB",0,""]];
-for(const [n,s,w,c] of items){const li=document.createElement("li");li.className=c;li.innerHTML='<div class="row"><span class="name"></span><span class="state"></span></div><div class="bar"><i></i></div>';li.querySelector(".name").textContent=n;li.querySelector(".state").textContent=s;li.querySelector("i").style.width=w+"%";document.getElementById("list").appendChild(li);}
-{const b=document.getElementById("go");b.disabled=true;b.textContent="Uploading…";}
-</script></body>`);
+	html.replace(
+		"</body>",
+		`<script>
+document.head.insertAdjacentHTML('beforeend','<style>li{animation:none!important}</style>');
+const demo=[["IMG_2041.HEIC",3407872,1,"img"],["IMG_2042.HEIC",2936012,1,"img2"],["Screen Recording 2026-10-12.mov",48234496,.64,"video"],["invoice-october.pdf",1258291,0,"file"]];
+const grad={img:"linear-gradient(135deg,#f6a04d,#e8566c)",img2:"linear-gradient(135deg,#4facfe,#43e97b)"};
+for(const [n,sz,p,k] of demo){const f=new File([""],n,{type:k==="video"?"video/quicktime":k==="file"?"application/pdf":""});Object.defineProperty(f,"size",{value:sz});const it=add(f);
+ if(grad[k]){const th=it.li.querySelector(".thumb");th.innerHTML="";th.style.padding="0";th.style.backgroundImage=grad[k];}
+ if(p===1){it.state="ok";it.li.className="ok";it.li.querySelector(".st").innerHTML=IC.check;it.li.querySelector(".sub").textContent=fmt(sz)+" · sent";}
+ else if(p>0){it.state="up";it.sent=sz*p;it.li.className="";it.li.querySelector(".bar i").style.width=(p*100)+"%";it.li.querySelector(".sub").textContent=fmt(sz*p)+" of "+fmt(sz);}
+}
+busy=true;refresh();
+</script></body>`,
+	);
 
 const shoot = (html, png, scheme, size) => {
 	const file = path.join(pagesDir, path.basename(png, ".png") + ".html");
@@ -61,8 +71,8 @@ const shoot = (html, png, scheme, size) => {
 };
 
 for (const scheme of ["light", "dark"]) {
-	const html = phoneDemo(renderUploadPage({ computer: "MY-LAPTOP", base: "/demo/" }));
-	shoot(html, path.join(imagesDir, `phone-upload${scheme === "dark" ? "-dark" : ""}.png`), scheme, "500,860");
+	const html = phoneDemo(renderUploadPage({ computer: "MY-LAPTOP", base: "/demo/", secure: true }));
+	shoot(html, path.join(imagesDir, `phone-upload${scheme === "dark" ? "-dark" : ""}.png`), scheme, "500,800");
 }
 
 for (const [name, page] of Object.entries(pages)) {

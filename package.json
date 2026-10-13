@@ -44,7 +44,8 @@
     "node": ">=18"
   },
   "scripts": {
-    "screenshots": "node docs/render-screenshots.mjs"
+    "screenshots": "node docs/render-screenshots.mjs",
+    "demo": "node docs/render-demo.mjs"
   },
   "dependencies": {
     "qrcode": "1.5.4"

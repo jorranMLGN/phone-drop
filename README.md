@@ -17,6 +17,11 @@
 A QR code appears, you scan it, and the files go straight between your phone and your computer over your own Wi-Fi.<br>
 No app, no cable, no cloud, no account, <b>no file size limit</b>.</p>
 
+<p align="center">
+  <img src="docs/images/demo.gif" width="720" alt="Animated illustration: you ask Claude Code to put a video on your phone, a QR code appears, the phone scans it and downloads the 1.24 GB file">
+  <br><sub>Illustration of a send: ask, scan, done.</sub>
+</p>
+
 ```text
 $ npx phone-drop holiday-video.mov        # or just ask Claude Code / Codex / Gemini / Cursor
 
@@ -456,6 +461,7 @@ scripts/upload-page.mjs           upload page (shown on the phone)
 scripts/gate-page.mjs             passcode lock screen (shown on the phone)
 scripts/brand.mjs                 favicon and credits
 docs/render-screenshots.mjs       regenerates docs/images (npm run screenshots)
+docs/render-demo.mjs              regenerates docs/images/demo.gif (npm run demo, needs ffmpeg)
 ```
 
 ## License

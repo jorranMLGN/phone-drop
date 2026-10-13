@@ -4,11 +4,12 @@
 // (e.g. Feather: feather://install/<https-url>).
 //
 //   node phone-drop.mjs send <file> [--open <app|template>] [--download]
+//   node phone-drop.mjs receive [--to <dir>]     phone → computer: QR opens an upload page
 //   node phone-drop.mjs setup     one-time: create a local CA so the phone trusts HTTPS links
 //   node phone-drop.mjs status    show config, certificate and network info
 //   node phone-drop.mjs apps      list configured open-in apps
 //
-// Options: --open <app|template>  --download  --http  --https  --ip <addr>  --port <n>
+// Options: --open <app|template>  --download  --to <dir>  --max-mb <n>  --http  --https  --ip <addr>  --port <n>
 //          --timeout <minutes>  --no-browser
 
 import { execFileSync, spawn } from "node:child_process";
@@ -20,6 +21,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderQrPage, STEPS } from "./qr-page.mjs";
+import { renderUploadPage } from "./upload-page.mjs";
 
 const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const STATE_DIR = path.join(os.homedir(), ".phone-drop");
@@ -65,6 +67,7 @@ function loadConfig() {
 		apps: pairs(config.apps),
 		autoOpen: Object.fromEntries(Object.entries(pairs(config.auto_open)).map(([ext, app]) => [ext.replace(/^\./, ""), app.toLowerCase()])),
 		timeout: Number(config.timeout_minutes) || 15,
+		receiveDir: typeof config.receive_dir === "string" && config.receive_dir.trim() ? config.receive_dir.trim().replace(/^~(?=$|[\\/])/, os.homedir()) : path.join(os.homedir(), "Downloads"),
 	};
 }
 const CONFIG = loadConfig();
@@ -344,11 +347,113 @@ async function send() {
 	});
 }
 
+// Phone → computer: serve an upload page; each file arrives as a raw PUT body.
+async function receive() {
+	const dest = path.resolve(opt("to", CONFIG.receiveDir));
+	fs.mkdirSync(dest, { recursive: true });
+	const transport = flag("https") ? "https" : flag("http") ? "http" : CONFIG.transport;
+	const secure = transport === "https" || (transport === "auto" && caReady());
+	if (secure && !caReady()) die("Transport is https but the one-time setup hasn't been done. Run `phone-drop.mjs setup` first.");
+
+	const ip = pickLanIp();
+	const port = Number(opt("port", secure ? "8443" : "8080"));
+	const token = crypto.randomBytes(12).toString("hex");
+	const base = `/${token}/`;
+	const link = `${secure ? "https" : "http"}://${ip}:${port}${base}`;
+	const maxBytes = Number(opt("max-mb", "0")) * 1048576;
+	const minutes = Number(opt("timeout", CONFIG.timeout));
+	const IDLE_MS = 2 * 60_000;
+	const received = [];
+	let active = 0;
+	let idleTimer;
+	const timer = startTimeout(minutes, "any upload");
+
+	const finish = (why) => {
+		console.log(`${why} Received ${received.length} file(s) into ${dest}${received.length ? ":" : "."}`);
+		for (const r of received) console.log(`  ${r}`);
+		process.exit(received.length ? 0 : 2);
+	};
+	const armIdle = () => {
+		clearTimeout(idleTimer);
+		if (received.length && !active) idleTimer = setTimeout(() => finish("No new uploads for 2 minutes."), IDLE_MS);
+	};
+
+	// Never overwrite: "photo.jpg" → "photo (1).jpg" if it exists.
+	const uniquePath = (name) => {
+		const clean = path.basename(name).replace(/[<>:"/\\|?*\x00-\x1f]+/g, "_").replace(/^\.+/, "").trim() || "upload";
+		const { name: stem, ext } = path.parse(clean);
+		let candidate = path.join(dest, clean);
+		for (let i = 1; fs.existsSync(candidate); i++) candidate = path.join(dest, `${stem} (${i})${ext}`);
+		return candidate;
+	};
+
+	const handler = (req, res) => {
+		const who = req.socket.remoteAddress;
+		const url = new URL(req.url, "http://x");
+		if (req.method === "GET" && url.pathname === base) {
+			console.log(`Upload page opened by ${who}`);
+			res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+			return res.end(renderUploadPage({ computer: os.hostname(), base }));
+		}
+		if (req.method === "POST" && url.pathname === `${base}done`) {
+			res.writeHead(200).end("ok");
+			return setTimeout(() => finish("Phone tapped Done."), 500);
+		}
+		if (req.method === "PUT" && url.pathname === `${base}upload`) {
+			const expected = Number(req.headers["content-length"] || -1);
+			if (maxBytes && expected > maxBytes) return res.writeHead(413).end("too large");
+			clearTimeout(idleTimer);
+			active++;
+			const target = uniquePath(url.searchParams.get("name") || "upload");
+			const partial = `${target}.part`;
+			const out = fs.createWriteStream(partial);
+			let bytes = 0;
+			req.on("data", (c) => {
+				bytes += c.length;
+				if (maxBytes && bytes > maxBytes) req.destroy();
+			});
+			req.pipe(out);
+			const fail = () => {
+				out.destroy();
+				fs.rm(partial, { force: true }, () => {});
+				active--;
+				console.log(`Upload of ${path.basename(target)} from ${who} aborted after ${bytes} bytes.`);
+				armIdle();
+			};
+			req.on("aborted", fail);
+			out.on("finish", () => {
+				if (expected >= 0 && bytes !== expected) return fail();
+				fs.renameSync(partial, target);
+				active--;
+				received.push(target);
+				console.log(`Received ${path.basename(target)} (${(bytes / 1048576).toFixed(1)} MB) from ${who}`);
+				clearTimeout(timer);
+				res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify({ saved: path.basename(target), bytes }));
+				armIdle();
+			});
+			return;
+		}
+		res.writeHead(404).end();
+	};
+	const server = secure ? https.createServer(serverCertFor(ip), handler) : http.createServer(handler);
+	server.requestTimeout = 0; // large uploads over slow Wi-Fi
+	if (secure) {
+		server.on("tlsClientError", (e, sock) =>
+			console.log(`TLS handshake from ${sock?.remoteAddress ?? "?"} failed (${e.code || e.message}). Is the CA trusted on the phone (Certificate Trust Settings)?`),
+		);
+	}
+	await listenOrDie(server, port, ip);
+	console.log(`Waiting for uploads over ${secure ? "HTTPS" : "HTTP"}; saving to ${dest}`);
+	console.log(`Link: ${link}`);
+	await showQrPage({ title: "Send files to this computer", fileName: `Saves to ${dest}`, link, steps: STEPS.receive });
+}
+
 function status() {
 	console.log(`State dir   : ${STATE_DIR}`);
 	console.log(`HTTPS setup : ${caReady() ? "done (downloads use HTTPS when transport=auto)" : "not done (downloads use HTTP; apps need `setup`)"}`);
 	console.log(`Transport   : ${CONFIG.transport}`);
 	console.log(`Timeout     : ${CONFIG.timeout} min`);
+	console.log(`Receive to  : ${CONFIG.receiveDir}`);
 	console.log(`LAN IP      : ${pickLanIp()}`);
 	apps();
 }
@@ -366,6 +471,9 @@ switch (cmd) {
 	case "send":
 		await send();
 		break;
+	case "receive":
+		await receive();
+		break;
 	case "status":
 		status();
 		break;
@@ -373,6 +481,6 @@ switch (cmd) {
 		apps();
 		break;
 	default:
-		console.log("Usage: phone-drop.mjs <send <file> [--open app] [--download] | setup | status | apps> [--http|--https] [--ip addr] [--port n] [--timeout min] [--no-browser]");
+		console.log("Usage: phone-drop.mjs <send <file> [--open app] [--download] | receive [--to dir] | setup | status | apps> [--http|--https] [--ip addr] [--port n] [--timeout min] [--no-browser]");
 		process.exit(cmd ? 1 : 0);
 }

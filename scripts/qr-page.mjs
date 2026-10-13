@@ -43,6 +43,11 @@ export const STEPS = {
 		"Open the link in your browser and tap <b>Download</b>.",
 		"iPhone: <b>Files → Downloads</b>. Android: the <b>Downloads</b> app.",
 	],
+	receive: [
+		"Scan with your phone's <b>Camera</b> (same Wi-Fi) and open the link.",
+		"Tap <b>Choose photos or files</b>, pick what you want, then <b>Upload</b>.",
+		"Tap <b>Done</b> when finished. Files appear in the folder above.",
+	],
 	app: (name) => [
 		"Scan with your phone's <b>Camera</b> (same Wi-Fi).",
 		`Tap the banner to open <b>${cap(name)}</b>.`,

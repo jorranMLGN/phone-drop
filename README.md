@@ -1,11 +1,14 @@
 # phone-drop
 
-**AirDrop for Claude Code.** Ask Claude to put a file on your phone. A QR code appears, you scan it, and the file downloads straight from your computer over your own Wi-Fi.
+**AirDrop for Claude Code.** Ask Claude to put a file on your phone, or to grab files from it. A QR code appears, you scan it, and the files go straight between your phone and your computer over your own Wi-Fi.
 
 ```text
 You:     "put ~/Downloads/holiday-photos.zip on my phone"
 Claude:  starts a one-shot server and opens a QR page in your browser
 Phone:   Camera → scan → Download → done
+
+You:     "let me upload some photos from my phone"
+Phone:   Camera → scan → choose photos → Upload → they land in ~/Downloads
 ```
 
 <p align="center">
@@ -15,7 +18,8 @@ Phone:   Camera → scan → Download → done
   </picture>
 </p>
 
-- **Zero setup for downloads:** works with any phone (iPhone or Android) and any file type.
+- **Both directions:** computer → phone (download) and phone → computer (upload).
+- **Zero setup:** works with any phone (iPhone or Android) and any file type. Nothing to install on the phone.
 - **Private:** the file goes straight from your computer to your phone on the local network. No cloud, no upload, no account.
 - **One-shot:** a random, unguessable link that stops working after one complete download (or 15 minutes).
 - **Extensible:** with an optional one-time HTTPS setup, a scan can **open the file in an app** instead. [Feather](https://github.com/claration/Feather) (iOS `.ipa` sideloading) is built in, and you can add your own apps with a URL template.
@@ -26,13 +30,14 @@ Phone:   Camera → scan → Download → done
 
 1. [Install](#install)
 2. [Send a file](#send-a-file)
-3. [Optional: one-time HTTPS setup](#optional-one-time-https-setup)
-4. [Open in apps (Feather and your own)](#open-in-apps-feather-and-your-own)
-5. [Configuration](#configuration)
-6. [Troubleshooting](#troubleshooting)
-7. [Security notes](#security-notes)
-8. [Uninstall](#uninstall)
-9. [Command-line reference](#command-line-reference)
+3. [Receive files from your phone](#receive-files-from-your-phone)
+4. [Optional: one-time HTTPS setup](#optional-one-time-https-setup)
+5. [Open in apps (Feather and your own)](#open-in-apps-feather-and-your-own)
+6. [Configuration](#configuration)
+7. [Troubleshooting](#troubleshooting)
+8. [Security notes](#security-notes)
+9. [Uninstall](#uninstall)
+10. [Command-line reference](#command-line-reference)
 
 ---
 
@@ -92,6 +97,45 @@ The server on your computer stops as soon as the download completes, and Claude 
 > **The first time on Windows**, a firewall prompt asks whether *Node.js* may accept connections. Allow it on **Private networks**.
 
 Without the HTTPS setup below, downloads use plain HTTP. That's fine on your home Wi-Fi: the link is random and works only once. But the transfer isn't encrypted, so anyone on the same network could in theory capture it. On shared or public Wi-Fi, do the setup first.
+
+## Receive files from your phone
+
+The other direction: ask Claude
+
+> let me upload some photos from my phone
+
+> receive files into ~/Desktop/scans
+
+or use the slash command:
+
+```text
+/phone-drop:receive
+```
+
+Claude opens a QR page on your computer:
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/receive-page-dark.png">
+    <img src="docs/images/receive-page.png" width="340" alt="The 'Send files to this computer' page with a QR code">
+  </picture>
+  &nbsp;
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/phone-upload-dark.png">
+    <img src="docs/images/phone-upload.png" width="250" alt="The upload page on the phone, with files uploading">
+  </picture>
+</p>
+
+1. Scan the QR code with your phone's **Camera** and open the link. The upload page on the right opens.
+2. Tap **Choose photos or files**. Pick from your photo library, camera or Files, and select as many as you like.
+3. Tap **Upload**. Each file shows its own progress bar.
+4. Tap **Done** when you're finished.
+
+The files land in your **Downloads** folder, or in the folder you named or [configured](#configuration).
+
+- **No overwriting:** existing files are never overwritten. `IMG_2041.JPG` becomes `IMG_2041 (1).JPG`.
+- **Interrupted uploads** are discarded, so you never end up with half a file.
+- **Stopping:** the server stops when you tap **Done**, after 2 minutes without new uploads, or at the timeout. Claude then lists what arrived.
 
 ## Optional: one-time HTTPS setup
 
@@ -198,7 +242,8 @@ Open the settings dialog in Claude Code:
 | **Transport** | `auto` | `auto`: HTTPS once the setup is done, otherwise HTTP. `https`: always require the setup. `http`: never use HTTPS (app links won't work). |
 | **Open-in apps** | `feather=feather://install/{url}` | Your apps, one `name=template` per entry. |
 | **Auto-open by file type** | `ipa=feather`, `tipa=feather` | `extension=app`. Matching files open in that app instead of downloading. Remove all entries to always download. |
-| **Timeout (minutes)** | `15` | Stop serving if nothing finishes downloading. |
+| **Receive folder** | your Downloads folder | Where uploads from your phone are saved. |
+| **Timeout (minutes)** | `15` | Stop serving if nothing is transferred. |
 
 Claude Code saves these in your `settings.json` under `pluginConfigs`, and the script reads them from there. Restart Claude Code after you change them.
 
@@ -217,7 +262,8 @@ Claude Code saves these in your `settings.json` under `pluginConfigs`, and the s
 
 ## Security notes
 
-- **HTTP mode** (no setup) is unencrypted on the local network. Every transfer uses a fresh random 96-bit URL that works for one complete download.
+- **HTTP mode** (no setup) is unencrypted on the local network. Every transfer uses a fresh random 96-bit URL; requests to any other path get a 404.
+- **Receive mode** only accepts uploads at that random URL while it runs. Uploaded file names are reduced to a plain file name, so they can't escape the destination folder. Use `--max-mb` to cap the size per file.
 - **The CA private key** (`~/.phone-drop/ca.key`) never leaves your computer and is readable only by your user account (Windows ACL / `chmod 600`). Anyone holding it could create certificates your phone trusts, so **never share, sync or commit `~/.phone-drop/`**. If you think it leaked, remove the profile from your phone and delete the folder.
 - **Server certificates** are valid for 397 days, within [Apple's TLS requirements](https://support.apple.com/en-us/103769) (≤ 825 days, `serverAuth` EKU, SAN).
 - **The setup page** serves only the *public* CA certificate. A certificate contains no secrets.
@@ -236,12 +282,14 @@ If you did the HTTPS setup:
 
 ## Command-line reference
 
-The plugin is a Claude Code [skill](skills/send/SKILL.md) wrapped around one Node script, which you can also run on its own:
+The plugin is two Claude Code skills ([send](skills/send/SKILL.md), [receive](skills/receive/SKILL.md)) wrapped around one Node script, which you can also run on its own:
 
 ```bash
 node scripts/phone-drop.mjs send <file>                  # download (or auto-open by file type)
 node scripts/phone-drop.mjs send <file> --open feather   # open in a configured app
 node scripts/phone-drop.mjs send <file> --download       # always a plain download
+node scripts/phone-drop.mjs receive                      # phone → computer (upload page)
+node scripts/phone-drop.mjs receive --to ~/Desktop       # …into a specific folder
 node scripts/phone-drop.mjs setup                        # one-time HTTPS setup
 node scripts/phone-drop.mjs status                       # transport, apps, CA, LAN IP
 node scripts/phone-drop.mjs apps                         # configured apps + auto-open rules
@@ -251,20 +299,24 @@ node scripts/phone-drop.mjs apps                         # configured apps + aut
 |---|---|---|
 | `--open <app\|template>` | from auto-open rules | app name, or a one-off template containing `{url}` |
 | `--download` | off | ignore auto-open rules |
+| `--to <dir>` | *Receive folder* | `receive`: where uploads are saved |
+| `--max-mb <n>` | no limit | `receive`: maximum size per file |
 | `--http` / `--https` | from *Transport* | force a transport for this transfer |
 | `--ip <addr>` | auto (prefers Wi-Fi/Ethernet over virtual adapters) | LAN IP to bind and put in the link |
 | `--port <n>` | `8443` (HTTPS), `8080` (HTTP, setup) | |
 | `--timeout <min>` | `15` | |
 | `--no-browser` | off | don't open the QR page (its path is still printed) |
 
-Exit codes: `0` delivered, `1` error, `2` timed out.
+Exit codes: `0` delivered/received, `1` error, `2` timed out (nothing transferred).
 
 ```text
 .claude-plugin/plugin.json        manifest + user options (userConfig)
 .claude-plugin/marketplace.json   this repo is its own marketplace (source ".")
-skills/send/SKILL.md              tells Claude when and how to use the script
+skills/send/SKILL.md              computer → phone (Claude's instructions)
+skills/receive/SKILL.md           phone → computer
 scripts/phone-drop.mjs            server, certificates, config
-scripts/qr-page.mjs               QR page template
+scripts/qr-page.mjs               QR page template (shown on the computer)
+scripts/upload-page.mjs           upload page (shown on the phone)
 docs/render-screenshots.mjs       regenerates docs/images (npm run screenshots)
 ```
 

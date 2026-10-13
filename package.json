@@ -1,13 +1,17 @@
 {
   "name": "phone-drop",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "Claude Code plugin: drop files from your computer onto your phone over local Wi-Fi with a QR code.",
+  "description": "Claude Code plugin: drop files between your computer and your phone over local Wi-Fi with a QR code.",
   "type": "module",
   "license": "MIT",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "screenshots": "node docs/render-screenshots.mjs"
   },
-  "dependencies": { "qrcode": "1.5.4" }
+  "dependencies": {
+    "qrcode": "1.5.4"
+  }
 }

@@ -316,7 +316,7 @@ node scripts/phone-drop.mjs apps                         # configured apps + aut
 | `--http` / `--https` | from *Transport* | force a transport for this transfer |
 | `--ip <addr>` | auto (prefers Wi-Fi/Ethernet over virtual adapters) | LAN IP to bind and put in the link |
 | `--port <n>` | `8443` (HTTPS), `8080` (HTTP, setup) | |
-| `--timeout <min>` | `15` | |
+| `--timeout <min>` | `15` | stop after this long with nothing being transferred (never during a transfer) |
 | `--no-browser` | off | don't open the QR page (its path is still printed) |
 
 Exit codes: `0` delivered/received, `1` error, `2` timed out (nothing transferred).

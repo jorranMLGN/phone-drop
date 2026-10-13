@@ -230,11 +230,33 @@ function listenOrDie(server, port, host) {
 	});
 }
 
-function startTimeout(minutes, what) {
-	return setTimeout(() => {
-		console.log(`Timed out after ${minutes} min without ${what}. Server stopped.`);
-		process.exit(2);
-	}, minutes * 60_000);
+// Stops the server after `minutes` of inactivity. It never fires while a transfer is running,
+// so a multi-GB file over slow Wi-Fi isn't cut off halfway.
+function startTimeout(minutes, what, onTimeout) {
+	let active = 0;
+	let handle;
+	const arm = () => {
+		clearTimeout(handle);
+		handle = setTimeout(() => {
+			if (onTimeout) return onTimeout();
+			console.log(`Timed out after ${minutes} min without ${what}. Server stopped.`);
+			process.exit(2);
+		}, minutes * 60_000);
+	};
+	arm();
+	return {
+		busy() {
+			active++;
+			clearTimeout(handle);
+		},
+		idle() {
+			active = Math.max(0, active - 1);
+			if (!active) arm();
+		},
+		stop() {
+			clearTimeout(handle);
+		},
+	};
 }
 
 // ---------- commands ----------
@@ -258,7 +280,7 @@ async function setup() {
 		res.end(der, () => {
 			if (req.method === "HEAD") return;
 			console.log("Profile delivered. Finish the steps on the phone (install the profile, then turn on full trust).");
-			clearTimeout(timer);
+			timer.stop();
 			setTimeout(() => process.exit(0), 3000);
 		});
 	});
@@ -311,6 +333,7 @@ async function send() {
 		if (req.method === "HEAD") return res.end();
 		let sent = 0;
 		let lastPct = -1;
+		timer.busy();
 		const stream = fs.createReadStream(abs);
 		stream.on("data", (chunk) => {
 			sent += chunk.length;
@@ -322,11 +345,13 @@ async function send() {
 		});
 		res.on("finish", () => {
 			console.log(`Download complete: ${safeName} -> ${who}.${app ? ` ${app.name} will now import it.` : ""}`);
-			clearTimeout(timer);
+			timer.stop();
 			setTimeout(() => process.exit(0), 3000);
 		});
 		res.on("close", () => {
-			if (!res.writableFinished) console.log(`Transfer to ${who} aborted at ${sent} bytes; waiting for a retry.`);
+			if (res.writableFinished) return;
+			console.log(`Transfer to ${who} aborted at ${sent} bytes; waiting for a retry.`);
+			timer.idle();
 		});
 		stream.pipe(res);
 	};
@@ -366,13 +391,12 @@ async function receive() {
 	const received = [];
 	let active = 0;
 	let idleTimer;
-	const timer = startTimeout(minutes, "any upload");
-
 	const finish = (why) => {
 		console.log(`${why} Received ${received.length} file(s) into ${dest}${received.length ? ":" : "."}`);
 		for (const r of received) console.log(`  ${r}`);
 		process.exit(received.length ? 0 : 2);
 	};
+	const timer = startTimeout(minutes, "any upload", () => finish(`Timed out after ${minutes} min.`));
 	const armIdle = () => {
 		clearTimeout(idleTimer);
 		if (received.length && !active) idleTimer = setTimeout(() => finish("No new uploads for 2 minutes."), IDLE_MS);
@@ -404,6 +428,7 @@ async function receive() {
 			if (maxBytes && expected > maxBytes) return res.writeHead(413).end("too large");
 			clearTimeout(idleTimer);
 			active++;
+			timer.busy();
 			const target = uniquePath(url.searchParams.get("name") || "upload");
 			const partial = `${target}.part`;
 			const out = fs.createWriteStream(partial);
@@ -417,6 +442,7 @@ async function receive() {
 				out.destroy();
 				fs.rm(partial, { force: true }, () => {});
 				active--;
+				timer.idle();
 				console.log(`Upload of ${path.basename(target)} from ${who} aborted after ${bytes} bytes.`);
 				armIdle();
 			};
@@ -427,7 +453,7 @@ async function receive() {
 				active--;
 				received.push(target);
 				console.log(`Received ${path.basename(target)} (${(bytes / 1048576).toFixed(1)} MB) from ${who}`);
-				clearTimeout(timer);
+				timer.idle();
 				res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify({ saved: path.basename(target), bytes }));
 				armIdle();
 			});

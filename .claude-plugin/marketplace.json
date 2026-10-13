@@ -1,0 +1,14 @@
+{
+  "name": "phone-drop",
+  "description": "Marketplace for the phone-drop Claude Code plugin.",
+  "owner": { "name": "jorranMLGN", "url": "https://github.com/jorranMLGN" },
+  "plugins": [
+    {
+      "name": "phone-drop",
+      "source": ".",
+      "description": "Drop files from your computer onto your phone over local Wi-Fi with a QR code. Optional open-in-app handlers (Feather built in).",
+      "category": "productivity",
+      "tags": ["phone", "file-transfer", "qr", "iphone", "feather"]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "name": "phone-drop",
+  "version": "1.0.0",
+  "description": "Drop files from your computer onto your phone over local Wi-Fi: scan a QR code and download. Optional 'open in app' handlers, with Feather (.ipa sideloading) built in.",
+  "author": { "name": "jorranMLGN", "url": "https://github.com/jorranMLGN" },
+  "homepage": "https://github.com/jorranMLGN/phone-drop",
+  "repository": "https://github.com/jorranMLGN/phone-drop",
+  "license": "MIT",
+  "keywords": ["iphone", "android", "file-transfer", "qr", "airdrop", "lan", "feather", "ipa", "sideload"],
+  "userConfig": {
+    "transport": {
+      "type": "string",
+      "title": "Transport",
+      "description": "auto = HTTPS once the one-time certificate setup is done, otherwise plain HTTP (no setup needed). https = always require the certificate. http = never use it.",
+      "options": ["auto", "https", "http"],
+      "default": "auto"
+    },
+    "apps": {
+      "type": "string",
+      "multiple": true,
+      "title": "Open-in apps",
+      "description": "Apps a file can be opened in, as name=URL template. {url} is the file's HTTPS link, {url_encoded} the percent-encoded form. Example: myapp=myapp://import?url={url_encoded}",
+      "default": ["feather=feather://install/{url}"]
+    },
+    "auto_open": {
+      "type": "string",
+      "multiple": true,
+      "title": "Auto-open by file type",
+      "description": "Open matching files in an app instead of downloading them, as extension=app. Example: ipa=feather. Remove all entries to always download.",
+      "default": ["ipa=feather", "tipa=feather"]
+    },
+    "timeout_minutes": {
+      "type": "number",
+      "title": "Timeout (minutes)",
+      "description": "Stop serving if no download completes within this time.",
+      "default": 15,
+      "min": 1,
+      "max": 240
+    }
+  }
+}

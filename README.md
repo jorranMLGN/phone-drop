@@ -1,9 +1,23 @@
 # phone-drop
 
-**AirDrop for Claude Code.** Ask Claude to put a file on your phone, or to grab files from it. A QR code appears, you scan it, and the files go straight between your phone and your computer over your own Wi-Fi.
+<p align="center">
+  <img src="docs/images/banner.png" alt="phone-drop: AirDrop for Claude Code. Move files between your computer and your phone with one QR scan." width="100%">
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-5a64e8"></a>
+  <img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude_Code-plugin-8b5cf6">
+  <img alt="Works with iPhone and Android" src="https://img.shields.io/badge/phone-iPhone_%7C_Android-22a05b">
+  <img alt="Runs on Windows, macOS, Linux" src="https://img.shields.io/badge/computer-Windows_%7C_macOS_%7C_Linux-555">
+  <img alt="No file size limit" src="https://img.shields.io/badge/file_size-no_limit-e8566c">
+</p>
+
+<p align="center"><b>Ask Claude to put a file on your phone, or to grab files from it.</b><br>
+A QR code appears, you scan it, and the files go straight between your phone and your computer over your own Wi-Fi.<br>
+No app, no cable, no cloud, no account, <b>no file size limit</b>.</p>
 
 ```text
-You:     "put ~/Downloads/holiday-photos.zip on my phone"
+You:     "put ~/Downloads/holiday-video.mov on my phone"
 Claude:  starts a one-shot server and opens a QR page in your browser
 Phone:   Camera → scan → Download → done
 
@@ -28,11 +42,29 @@ Phone:   Camera → scan → choose photos → they upload and land in ~/Downloa
 </tr>
 </table>
 
-- **Both directions:** computer → phone (download) and phone → computer (upload).
-- **Zero setup:** works with any phone (iPhone or Android) and any file type. Nothing to install on the phone.
-- **Private:** the file goes straight from your computer to your phone on the local network. No cloud, no upload, no account.
-- **One-shot:** a random, unguessable link that stops working after one complete download (or 15 minutes).
-- **Extensible:** with an optional one-time HTTPS setup, a scan can **open the file in an app** instead. [Feather](https://github.com/claration/Feather) (iOS `.ipa` sideloading) is built in, and you can add your own apps with a URL template.
+## Why phone-drop?
+
+- 📦 **No file size limit.** Files stream straight from disk to disk, so a 20 GB screen recording or a full photo backup goes through like a 2 KB note. No 25 MB email cap, no "upgrade to send larger files".
+- 🎞️ **Original quality.** phone-drop never compresses or re-encodes anything. Videos and photos arrive exactly as they left.
+- ⚡ **As fast as your Wi-Fi.** The transfer never touches the internet: no uploading to a server first and downloading again. It even works with the internet down, as long as both devices are on the same network.
+- 📱 **Nothing to install on the phone.** Just the Camera and the browser it already has. Works with iPhone and Android, from Windows, macOS and Linux.
+- 🔁 **Both directions.** Send files to your phone, or upload photos, videos and documents from it.
+- 🔒 **Private by design.** No cloud, no account, no third party. Each transfer uses a random one-time link that stops working when it's done. Optional HTTPS encrypts it end to end.
+- 🧩 **Opens files in apps.** One scan can open the file in an app instead. [Feather](https://github.com/claration/Feather) (iOS `.ipa` sideloading) is built in, and you can add your own with a URL template.
+- 💬 **Just ask Claude.** No commands to remember. Claude finds the file, picks the right mode and tells you when it has arrived.
+
+### Compared to the usual ways
+
+| | **phone-drop** | AirDrop | Cloud / WeTransfer | Email | Chat apps |
+|---|:---:|:---:|:---:|:---:|:---:|
+| File size limit | **None** | None | Plan limits | 25 MB (Gmail) | App limits |
+| Keeps original quality | **✅** | ✅ | ✅ | ✅ | Often compressed |
+| Works with Windows & Linux | **✅** | ❌ Apple only | ✅ | ✅ | ✅ |
+| Works with Android | **✅** | ❌ | ✅ | ✅ | ✅ |
+| Stays on your own network | **✅** | ✅ | ❌ | ❌ | ❌ |
+| No account needed | **✅** | ✅ | Usually not | ❌ | ❌ |
+| Phone → computer too | **✅** | Mac only | ✅ | ✅ | ✅ |
+| Opens files in apps (e.g. Feather) | **✅** | ❌ | ❌ | ❌ | ❌ |
 
 ---
 

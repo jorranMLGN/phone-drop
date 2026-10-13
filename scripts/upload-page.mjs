@@ -15,7 +15,7 @@ const ICON = {
 	check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>`,
 };
 
-export function renderUploadPage({ computer, base, secure }) {
+export function renderUploadPage({ computer, base, secure, key = "" }) {
 	return `<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
@@ -89,7 +89,7 @@ ${secure ? `<span class="badge secure"><i>${ICON.lock}</i>Encrypted</span>` : `<
 </main>
 <div class="dock"><div><button class="btn" id="fin">Done</button></div></div>
 <script>
-const base=${JSON.stringify(base)},computer=${JSON.stringify(computer)};
+const base=${JSON.stringify(base)},computer=${JSON.stringify(computer)},key=${JSON.stringify(key)};
 const $=id=>document.getElementById(id),list=$("list"),fin=$("fin");
 const IC={file:${JSON.stringify(ICON.file)},video:${JSON.stringify(ICON.video)},check:${JSON.stringify(ICON.check)}};
 const items=[];let busy=false;
@@ -115,7 +115,7 @@ function put(it){return new Promise(res=>{
   const x=new XMLHttpRequest(),li=it.li,bar=li.querySelector(".bar i"),sub=li.querySelector(".sub");
   li.className="";it.state="up";it.sent=0;sub.textContent=fmt(it.file.size)+" · starting";
   li.querySelector(".st").innerHTML='<div class="ring"></div>';
-  x.open("PUT",base+"upload?name="+encodeURIComponent(it.file.name));
+  x.open("PUT",base+"upload?name="+encodeURIComponent(it.file.name));if(key)x.setRequestHeader("X-Phone-Drop-Key",key);
   x.upload.onprogress=e=>{if(e.lengthComputable){it.sent=e.loaded;const p=Math.floor(100*e.loaded/e.total);bar.style.width=p+"%";sub.textContent=fmt(e.loaded)+" of "+fmt(e.total);refresh();}};
   const fail=lost=>{it.state="err";li.className="err";li.querySelector(".st").textContent="!";sub.innerHTML='Failed<button class="retry">Retry</button>';sub.querySelector("button").onclick=()=>{li.className="wait";it.state="wait";pump();};if(lost)$("alert").classList.add("on");refresh();res();};
   x.onload=()=>{if(x.status!==200)return fail(false);let saved=it.file.name;try{saved=JSON.parse(x.responseText).saved}catch{}it.state="ok";li.className="ok";li.querySelector(".st").innerHTML=IC.check;sub.textContent=fmt(it.file.size)+(saved!==it.file.name?" · saved as "+saved:" · sent");refresh();res();};
@@ -123,6 +123,6 @@ function put(it){return new Promise(res=>{
 });}
 async function pump(){if(busy)return;busy=true;refresh();let it;while((it=items.find(i=>i.state==="wait")))await put(it);busy=false;refresh();}
 $("f").onchange=e=>{for(const file of e.target.files)add(file);e.target.value="";refresh();pump();};
-fin.onclick=async()=>{try{await fetch(base+"done",{method:"POST"})}catch{}const ok=items.filter(i=>i.state==="ok");$("final").textContent=ok.length+" file"+(ok.length===1?"":"s")+" · "+fmt(ok.reduce((a,i)=>a+i.file.size,0))+" sent to "+computer+". You can close this page.";document.body.classList.add("done");};
+fin.onclick=async()=>{try{await fetch(base+"done",{method:"POST",headers:key?{"X-Phone-Drop-Key":key}:{}})}catch{}const ok=items.filter(i=>i.state==="ok");$("final").textContent=ok.length+" file"+(ok.length===1?"":"s")+" · "+fmt(ok.reduce((a,i)=>a+i.file.size,0))+" sent to "+computer+". You can close this page.";document.body.classList.add("done");};
 </script></body></html>`;
 }

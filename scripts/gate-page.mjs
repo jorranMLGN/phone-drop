@@ -1,0 +1,53 @@
+// Passcode lock screen shown on the phone before a transfer, when a passcode is set.
+// On success the server answers with the URL to continue to (download, app link or upload page).
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+const LOCK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="16" r="1.2" fill="currentColor"/></svg>`;
+
+export function renderGatePage({ computer, base, numeric, what }) {
+	return `<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Passcode · ${esc(computer)}</title>
+<style>
+:root{--bg:#f3f3f7;--fg:#16161a;--muted:#6c6c74;--card:#fff;--line:#e2e2ea;--accent:#5a64e8;--accent2:#8b5cf6;--soft:#eef0ff;--err:#d64545;--shadow:0 1px 2px #0000000d,0 8px 24px #0000000f}
+@media (prefers-color-scheme:dark){:root{--bg:#0e0e12;--fg:#f2f2f6;--muted:#9a9aa6;--card:#1a1a20;--line:#2e2e38;--accent:#8f97ff;--accent2:#b18cff;--soft:#23253d;--err:#ff7070;--shadow:0 1px 2px #0006,0 8px 24px #0004}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font:16px/1.45 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif}
+main{max-width:420px;margin:0 auto;padding:max(12vh,env(safe-area-inset-top)) 20px 40px;text-align:center}
+.lock{width:76px;height:76px;margin:0 auto 18px;border-radius:24px;padding:18px;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 10px 28px #5a64e84d}
+svg{width:100%;height:100%;display:block}
+h1{font-size:24px;margin:0 0 6px}p{margin:0 0 26px;color:var(--muted)}
+form{background:var(--card);border-radius:22px;padding:22px;box-shadow:var(--shadow)}
+input{width:100%;font:inherit;font-size:30px;font-weight:600;letter-spacing:.35em;text-align:center;padding:14px 10px 14px calc(10px + .35em);border-radius:14px;border:2px solid var(--line);background:var(--bg);color:var(--fg);outline:none}
+input:focus{border-color:var(--accent)}
+input.bad{border-color:var(--err);animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-8px)}50%{transform:translateX(7px)}75%{transform:translateX(-4px)}}
+button{display:block;width:100%;margin-top:14px;font:inherit;font-size:17px;font-weight:600;border:0;border-radius:14px;padding:15px;cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+button:disabled{opacity:.6}
+.msg{min-height:22px;margin-top:12px;font-size:14px;color:var(--err)}
+.foot{margin-top:22px;font-size:13px;color:var(--muted)}
+</style></head><body><main>
+<div class="lock">${LOCK}</div>
+<h1>Enter passcode</h1>
+<p>${esc(computer)} asked for a passcode before ${esc(what)}.</p>
+<form id="f" autocomplete="off">
+<input id="c" ${numeric ? 'inputmode="numeric" pattern="[0-9]*"' : ""} autocomplete="one-time-code" autofocus aria-label="Passcode">
+<button id="b">Unlock</button>
+<div class="msg" id="m"></div>
+</form>
+<div class="foot">The code is shown where the transfer was started, e.g. in Claude.</div>
+</main>
+<script>
+const f=document.getElementById("f"),c=document.getElementById("c"),b=document.getElementById("b"),m=document.getElementById("m");
+f.onsubmit=async e=>{e.preventDefault();if(!c.value.trim())return;b.disabled=true;m.textContent="";
+  try{const r=await fetch(${JSON.stringify(base)}+"unlock",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code:c.value.trim()})});
+    const j=await r.json().catch(()=>({}));
+    if(r.ok&&j.next){b.textContent="Unlocked ✓";location.href=j.next;return;}
+    c.classList.remove("bad");void c.offsetWidth;c.classList.add("bad");c.value="";
+    m.textContent=j.error||"Wrong passcode";
+  }catch{m.textContent="Can't reach the computer. Is the transfer still running?";}
+  b.disabled=false;c.focus();};
+</script></body></html>`;
+}

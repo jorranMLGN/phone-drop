@@ -27,13 +27,13 @@ Phone:   Camera → scan → choose photos → they upload and land in ~/Downloa
 
 <table align="center">
 <tr>
-<td align="center" valign="top"><b>Computer → phone</b><br><sub>Scan, tap Download</sub><br><br>
+<td align="center" valign="top"><b>💻 → 📱 Computer to phone</b><br><sub>Scan, tap Download</sub><br><br>
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/download-page-dark.png">
     <img src="docs/images/download-page.png" width="300" alt="The 'Download to your phone' page: a QR code with three steps underneath">
   </picture>
 </td>
-<td align="center" valign="top"><b>Phone → computer</b><br><sub>Scan, pick photos, they upload</sub><br><br>
+<td align="center" valign="top"><b>📱 → 💻 Phone to computer</b><br><sub>Scan, pick photos, they upload</sub><br><br>
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/phone-upload-dark.png">
     <img src="docs/images/phone-upload.png" width="230" alt="The upload page on the phone, with photos and files uploading">
@@ -49,7 +49,7 @@ Phone:   Camera → scan → choose photos → they upload and land in ~/Downloa
 - ⚡ **As fast as your Wi-Fi.** The transfer never touches the internet: no uploading to a server first and downloading again. It even works with the internet down, as long as both devices are on the same network.
 - 📱 **Nothing to install on the phone.** Just the Camera and the browser it already has. Works with iPhone and Android, from Windows, macOS and Linux.
 - 🔁 **Both directions.** Send files to your phone, or upload photos, videos and documents from it.
-- 🔒 **Private by design.** No cloud, no account, no third party. Each transfer uses a random one-time link that stops working when it's done. Optional HTTPS encrypts it end to end.
+- 🔒 **Private by design.** No cloud, no account, no third party. Each transfer uses a random one-time link that stops working when it's done. Add an optional **passcode** and HTTPS encryption for extra protection.
 - 🧩 **Opens files in apps.** One scan can open the file in an app instead. [Feather](https://github.com/claration/Feather) (iOS `.ipa` sideloading) is built in, and you can add your own with a URL template.
 - 💬 **Just ask Claude.** No commands to remember. Claude finds the file, picks the right mode and tells you when it has arrived.
 
@@ -73,13 +73,14 @@ Phone:   Camera → scan → choose photos → they upload and land in ~/Downloa
 1. [Install](#install)
 2. [Send a file](#send-a-file)
 3. [Receive files from your phone](#receive-files-from-your-phone)
-4. [Optional: one-time HTTPS setup](#optional-one-time-https-setup)
-5. [Open in apps (Feather and your own)](#open-in-apps-feather-and-your-own)
-6. [Configuration](#configuration)
-7. [Troubleshooting](#troubleshooting)
-8. [Security notes](#security-notes)
-9. [Uninstall](#uninstall)
-10. [Command-line reference](#command-line-reference)
+4. [Optional: passcode](#optional-passcode)
+5. [Optional: one-time HTTPS setup](#optional-one-time-https-setup)
+6. [Open in apps (Feather and your own)](#open-in-apps-feather-and-your-own)
+7. [Configuration](#configuration)
+8. [Troubleshooting](#troubleshooting)
+9. [Security notes](#security-notes)
+10. [Uninstall](#uninstall)
+11. [Command-line reference](#command-line-reference)
 
 ---
 
@@ -180,6 +181,30 @@ The files land in your **Downloads** folder, or in the folder you named or [conf
 - **No overwriting:** existing files are never overwritten. `IMG_2041.JPG` becomes `IMG_2041 (1).JPG`.
 - **Interrupted uploads** are discarded, so you never end up with half a file.
 - **Stopping:** the server stops when you tap **Done**, after 2 minutes without new uploads, or at the timeout. Claude then lists what arrived.
+
+## Optional: passcode
+
+Want extra protection, for example on a shared network or in an office? Ask for a passcode:
+
+> send report.pdf to my phone **with a passcode**
+
+> let me upload photos, **passcode protected**
+
+The QR code then opens a lock screen on the phone. Only after the right code does the download start, the upload page open or the app (e.g. Feather) launch.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/phone-passcode-dark.png">
+    <img src="docs/images/phone-passcode.png" width="250" alt="The passcode lock screen on the phone">
+  </picture>
+</p>
+
+- **Random code:** Claude generates a random 6-digit code for each transfer and tells you in the chat. It's **never shown on the QR page**, so someone who sees or photographs your screen still can't get in.
+- **Your own code:** pick a fixed code instead in the [configuration](#configuration), or for one transfer with `--passcode 4829`.
+- **Wrong guesses:** 5 wrong attempts stop the transfer.
+- **Under the hood:** a correct code doesn't just open a page. It hands the phone a second random key, and every file request needs that key.
+
+> A passcode stops people who get hold of the link. For protection against someone **listening in** on the network, combine it with the HTTPS setup below. Over plain HTTP the code travels unencrypted.
 
 ## Optional: one-time HTTPS setup
 
@@ -287,6 +312,7 @@ Open the settings dialog in Claude Code:
 | **Open-in apps** | `feather=feather://install/{url}` | Your apps, one `name=template` per entry. |
 | **Auto-open by file type** | `ipa=feather`, `tipa=feather` | `extension=app`. Matching files open in that app instead of downloading. Remove all entries to always download. |
 | **Receive folder** | your Downloads folder | Where uploads from your phone are saved. |
+| **Passcode** | *(empty: off)* | `random`: new 6-digit code per transfer. Any other value: that fixed code (stored in plain text in settings.json). |
 | **Timeout (minutes)** | `15` | Stop serving if nothing is transferred. |
 
 Claude Code saves these in your `settings.json` under `pluginConfigs`, and the script reads them from there. Restart Claude Code after you change them.
@@ -307,6 +333,7 @@ Claude Code saves these in your `settings.json` under `pluginConfigs`, and the s
 ## Security notes
 
 - **HTTP mode** (no setup) is unencrypted on the local network. Every transfer uses a fresh random 96-bit URL; requests to any other path get a 404.
+- **Passcode** (optional): the QR only opens a lock screen. A correct code returns a second random 128-bit key that every file request must carry. Codes are compared in constant time, and 5 wrong attempts stop the server. The code is never put in the QR or on the QR page.
 - **Receive mode** only accepts uploads at that random URL while it runs. Uploaded file names are reduced to a plain file name, so they can't escape the destination folder. Use `--max-mb` to cap the size per file.
 - **The CA private key** (`~/.phone-drop/ca.key`) never leaves your computer and is readable only by your user account (Windows ACL / `chmod 600`). Anyone holding it could create certificates your phone trusts, so **never share, sync or commit `~/.phone-drop/`**. If you think it leaked, remove the profile from your phone and delete the folder.
 - **Server certificates** are valid for 397 days, within [Apple's TLS requirements](https://support.apple.com/en-us/103769) (≤ 825 days, `serverAuth` EKU, SAN).
@@ -344,6 +371,8 @@ node scripts/phone-drop.mjs apps                         # configured apps + aut
 | `--open <app\|template>` | from auto-open rules | app name, or a one-off template containing `{url}` |
 | `--download` | off | ignore auto-open rules |
 | `--to <dir>` | *Receive folder* | `receive`: where uploads are saved |
+| `--passcode [code]` | *Passcode* setting | require a passcode: random 6-digit code, or the one you give |
+| `--no-passcode` | off | no passcode for this transfer, whatever the setting says |
 | `--max-mb <n>` | no limit | `receive`: maximum size per file |
 | `--http` / `--https` | from *Transport* | force a transport for this transfer |
 | `--ip <addr>` | auto (prefers Wi-Fi/Ethernet over virtual adapters) | LAN IP to bind and put in the link |
@@ -361,6 +390,7 @@ skills/receive/SKILL.md           phone → computer
 scripts/phone-drop.mjs            server, certificates, config
 scripts/qr-page.mjs               QR page template (shown on the computer)
 scripts/upload-page.mjs           upload page (shown on the phone)
+scripts/gate-page.mjs             passcode lock screen (shown on the phone)
 docs/render-screenshots.mjs       regenerates docs/images (npm run screenshots)
 ```
 

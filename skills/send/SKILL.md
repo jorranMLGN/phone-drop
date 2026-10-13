@@ -1,6 +1,6 @@
 ---
 name: send
-description: Send a file from this computer to the user's phone (iPhone or Android) over the local Wi-Fi with a QR code, like AirDrop. By default the phone downloads it; optionally it opens in an app such as Feather (.ipa sideloading). Use when the user asks to send, drop, push, transfer, share or install a file or app on their phone, or to open a file "in Feather" or another app. Also covers the one-time HTTPS setup.
+description: 💻 → 📱 Send a file from this computer to the user's phone (iPhone or Android) over the local Wi-Fi with a QR code, like AirDrop. By default the phone downloads it; optionally it opens in an app such as Feather (.ipa sideloading). Use when the user asks to send, drop, push, transfer, share or install a file or app on their phone, or to open a file "in Feather" or another app. Also covers the one-time HTTPS setup.
 argument-hint: "[file] [--open app]"
 ---
 
@@ -34,9 +34,13 @@ The user can change these in `/plugin configure phone-drop@phone-drop`: transpor
 5. Tell the user in one or two lines what to do: scan the QR with the camera, then either download it in the browser or tap the app banner and confirm. Also give the `Link:` the script printed.
 6. When the background task finishes, report the result. `Download complete` means the phone has the whole file. For a timeout or a TLS error, see Troubleshooting.
 
+## Passcode (optional)
+
+If the user asks for a passcode (or one is configured), the QR opens a lock screen on the phone first. Pass `--passcode` for a random 6-digit code, or `--passcode <code>` for a specific one. `--no-passcode` overrides the config for one transfer. The script prints `Passcode: …`. **Always tell the user that code**, because it is deliberately not shown on the QR page. This also works with apps: after unlocking, the page hands off to the app.
+
 ## Options
 
-`--open <app|template>` (an app name, or a raw template containing `{url}`), `--download`, `--http` / `--https`, `--ip <addr>`, `--port <n>`, `--timeout <minutes>`, `--no-browser`.
+`--open <app|template>` (an app name, or a raw template containing `{url}`), `--download`, `--passcode [code]`, `--no-passcode`, `--http` / `--https`, `--ip <addr>`, `--port <n>`, `--timeout <minutes>`, `--no-browser`.
 
 ## Troubleshooting
 

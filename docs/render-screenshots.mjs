@@ -7,6 +7,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { renderQrPage, STEPS } from "../scripts/qr-page.mjs";
 import { renderUploadPage } from "../scripts/upload-page.mjs";
+import { renderGatePage } from "../scripts/gate-page.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pagesDir = path.join(here, "pages");
@@ -73,6 +74,14 @@ const shoot = (html, png, scheme, size) => {
 for (const scheme of ["light", "dark"]) {
 	const html = phoneDemo(renderUploadPage({ computer: "MY-LAPTOP", base: "/demo/", secure: true }));
 	shoot(html, path.join(imagesDir, `phone-upload${scheme === "dark" ? "-dark" : ""}.png`), scheme, "500,800");
+}
+
+for (const scheme of ["light", "dark"]) {
+	const html = renderGatePage({ computer: "MY-LAPTOP", base: "/demo/", numeric: true, what: "receiving files" }).replace(
+		"</body>",
+		'<script>document.getElementById("c").value="4829";document.getElementById("c").blur();</script></body>',
+	);
+	shoot(html, path.join(imagesDir, `phone-passcode${scheme === "dark" ? "-dark" : ""}.png`), scheme, "500,800");
 }
 
 for (const [name, page] of Object.entries(pages)) {

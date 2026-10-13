@@ -9,7 +9,7 @@
 //   node phone-drop.mjs status    show config, certificate and network info
 //   node phone-drop.mjs apps      list configured open-in apps
 //
-// Options: --open <app|template>  --download  --to <dir>  --max-mb <n>  --http  --https  --ip <addr>  --port <n>
+// Options: --open <app|template>  --download  --to <dir>  --max-mb <n>  --passcode [code]  --no-passcode  --http  --https  --ip <addr>  --port <n>
 //          --timeout <minutes>  --no-browser
 
 import { execFileSync, spawn } from "node:child_process";
@@ -22,6 +22,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderQrPage, STEPS } from "./qr-page.mjs";
 import { renderUploadPage } from "./upload-page.mjs";
+import { renderGatePage } from "./gate-page.mjs";
 
 const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const STATE_DIR = path.join(os.homedir(), ".phone-drop");
@@ -67,6 +68,7 @@ function loadConfig() {
 		apps: pairs(config.apps),
 		autoOpen: Object.fromEntries(Object.entries(pairs(config.auto_open)).map(([ext, app]) => [ext.replace(/^\./, ""), app.toLowerCase()])),
 		timeout: Number(config.timeout_minutes) || 15,
+		passcode: typeof config.passcode === "string" ? config.passcode.trim() : "",
 		receiveDir: typeof config.receive_dir === "string" && config.receive_dir.trim() ? config.receive_dir.trim().replace(/^~(?=$|[\\/])/, os.homedir()) : path.join(os.homedir(), "Downloads"),
 	};
 }
@@ -259,6 +261,65 @@ function startTimeout(minutes, what, onTimeout) {
 	};
 }
 
+// ---------- passcode ----------
+// Optional passcode: the QR opens a lock screen, and only after the right code does the phone
+// get a second random key that unlocks the actual transfer URL. The code itself is never in the QR.
+function resolvePasscode() {
+	if (flag("no-passcode")) return null;
+	let value = argv.includes("--passcode") ? opt("passcode", "random") : CONFIG.passcode;
+	value = String(value || "").trim();
+	if (!value) return null;
+	if (value.toLowerCase() === "random") value = String(crypto.randomInt(0, 1_000_000)).padStart(6, "0");
+	return value;
+}
+
+const MAX_ATTEMPTS = 5;
+const json = (res, status, obj) => res.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store" }).end(JSON.stringify(obj));
+const sendHtml = (res, html) => res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }).end(html);
+const sameSecret = (a, b) => {
+	const x = crypto.createHash("sha256").update(String(a)).digest();
+	const y = crypto.createHash("sha256").update(String(b)).digest();
+	return crypto.timingSafeEqual(x, y);
+};
+
+function makeGate(passcode) {
+	if (!passcode) return null;
+	const key = crypto.randomBytes(16).toString("hex");
+	let attempts = 0;
+	return {
+		passcode,
+		key,
+		numeric: /^\d+$/.test(passcode),
+		ok: (req, url) => sameSecret(url.searchParams.get("k") || req.headers["x-phone-drop-key"] || "", key),
+		unlock(req, res, next) {
+			let body = "";
+			req.on("data", (c) => {
+				body += c;
+				if (body.length > 1024) req.destroy();
+			});
+			req.on("end", () => {
+				let code = "";
+				try {
+					code = String(JSON.parse(body).code || "").trim();
+				} catch {}
+				const who = req.socket.remoteAddress;
+				if (code && sameSecret(code, passcode)) {
+					console.log(`Passcode accepted from ${who}`);
+					return json(res, 200, { next: next(key) });
+				}
+				const left = MAX_ATTEMPTS - ++attempts;
+				if (left <= 0) {
+					console.log(`Wrong passcode from ${who}. Too many wrong attempts; stopped for safety.`);
+					json(res, 403, { error: "Too many wrong attempts. The transfer was stopped." });
+					return setTimeout(() => process.exit(1), 300);
+				}
+				console.log(`Wrong passcode from ${who} (${left} attempt(s) left)`);
+				json(res, 403, { error: `Wrong passcode. ${left} attempt${left === 1 ? "" : "s"} left.` });
+			});
+		},
+	};
+}
+
 // ---------- commands ----------
 async function setup() {
 	const created = ensureCa();
@@ -311,17 +372,35 @@ async function send() {
 	const size = fs.statSync(abs).size;
 	const safeName = path.basename(abs).replace(/[^A-Za-z0-9._-]+/g, "_");
 	const token = crypto.randomBytes(12).toString("hex");
-	const route = `/${token}/${safeName}`;
-	const fileUrl = `${secure ? "https" : "http"}://${ip}:${port}${route}`;
-	const link = app ? fillTemplate(app.template, fileUrl) : fileUrl;
+	const base = `/${token}/`;
+	const route = `${base}${safeName}`;
+	const origin = `${secure ? "https" : "http"}://${ip}:${port}`;
+	const fileUrl = `${origin}${route}`;
+	const gate = makeGate(resolvePasscode());
+	const appName = app ? `${app.name[0].toUpperCase()}${app.name.slice(1)}` : "";
+	// With a passcode the QR opens the lock screen; the real link (with the unlock key) comes after.
+	const finalLink = (u) => (app ? fillTemplate(app.template, u) : u);
+	const link = gate ? `${origin}${base}` : finalLink(fileUrl);
 	const minutes = Number(opt("timeout", CONFIG.timeout));
 	const timer = startTimeout(minutes, "a completed download");
 
 	const handler = (req, res) => {
 		const who = req.socket.remoteAddress;
-		if (req.url !== route) {
+		const url = new URL(req.url, "http://x");
+		if (gate && req.method === "GET" && url.pathname === base) {
+			console.log(`Passcode screen opened by ${who}`);
+			return sendHtml(res, renderGatePage({ computer: os.hostname(), base, numeric: gate.numeric, what: app ? `opening ${safeName} in ${appName}` : `downloading ${safeName}` }));
+		}
+		if (gate && req.method === "POST" && url.pathname === `${base}unlock`) {
+			return gate.unlock(req, res, (key) => finalLink(`${fileUrl}?k=${key}`));
+		}
+		if (url.pathname !== route) {
 			res.writeHead(404).end();
 			return;
+		}
+		if (gate && !gate.ok(req, url)) {
+			console.log(`Blocked a request from ${who} without the passcode.`);
+			return res.writeHead(403).end("Passcode required");
 		}
 		console.log(`${req.method} from ${who}`);
 		res.writeHead(200, {
@@ -364,11 +443,13 @@ async function send() {
 	await listenOrDie(server, port, ip);
 	console.log(`Serving ${abs} (${(size / 1048576).toFixed(1)} MB) over ${secure ? "HTTPS" : "HTTP"}${app ? `, opening in ${app.name}` : ""}`);
 	console.log(`Link: ${link}`);
+	if (gate) console.log(`Passcode: ${gate.passcode} (tell the user; it is not shown on the QR page)`);
 	await showQrPage({
-		title: app ? `Open in ${app.name[0].toUpperCase()}${app.name.slice(1)}` : "Download to your phone",
+		title: app ? `Open in ${appName}` : "Download to your phone",
 		fileName: path.basename(abs),
 		link,
-		steps: app ? STEPS.app(app.name) : STEPS.download,
+		passcode: !!gate,
+		steps: gate ? (app ? STEPS.appWithPasscode(app.name) : STEPS.withPasscode(STEPS.download)) : app ? STEPS.app(app.name) : STEPS.download,
 	});
 }
 
@@ -385,6 +466,7 @@ async function receive() {
 	const token = crypto.randomBytes(12).toString("hex");
 	const base = `/${token}/`;
 	const link = `${secure ? "https" : "http"}://${ip}:${port}${base}`;
+	const gate = makeGate(resolvePasscode());
 	const maxBytes = Number(opt("max-mb", "0")) * 1048576;
 	const minutes = Number(opt("timeout", CONFIG.timeout));
 	const IDLE_MS = 2 * 60_000;
@@ -415,9 +497,19 @@ async function receive() {
 		const who = req.socket.remoteAddress;
 		const url = new URL(req.url, "http://x");
 		if (req.method === "GET" && url.pathname === base) {
+			if (gate && !gate.ok(req, url)) {
+				console.log(`Passcode screen opened by ${who}`);
+				return sendHtml(res, renderGatePage({ computer: os.hostname(), base, numeric: gate.numeric, what: "receiving files" }));
+			}
 			console.log(`Upload page opened by ${who}`);
-			res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
-			return res.end(renderUploadPage({ computer: os.hostname(), base, secure }));
+			return sendHtml(res, renderUploadPage({ computer: os.hostname(), base, secure, key: gate ? gate.key : "" }));
+		}
+		if (gate && req.method === "POST" && url.pathname === `${base}unlock`) {
+			return gate.unlock(req, res, (key) => `${base}?k=${key}`);
+		}
+		if (gate && url.pathname.startsWith(base) && !gate.ok(req, url)) {
+			console.log(`Blocked a request from ${who} without the passcode.`);
+			return res.writeHead(403).end("Passcode required");
 		}
 		if (req.method === "POST" && url.pathname === `${base}done`) {
 			res.writeHead(200).end("ok");
@@ -471,7 +563,8 @@ async function receive() {
 	await listenOrDie(server, port, ip);
 	console.log(`Waiting for uploads over ${secure ? "HTTPS" : "HTTP"}; saving to ${dest}`);
 	console.log(`Link: ${link}`);
-	await showQrPage({ title: "Send files to this computer", fileName: `Saves to ${dest}`, link, steps: STEPS.receive });
+	if (gate) console.log(`Passcode: ${gate.passcode} (tell the user; it is not shown on the QR page)`);
+	await showQrPage({ title: "Send files to this computer", fileName: `Saves to ${dest}`, link, passcode: !!gate, steps: gate ? STEPS.withPasscode(STEPS.receive) : STEPS.receive });
 }
 
 function status() {
@@ -480,6 +573,7 @@ function status() {
 	console.log(`Transport   : ${CONFIG.transport}`);
 	console.log(`Timeout     : ${CONFIG.timeout} min`);
 	console.log(`Receive to  : ${CONFIG.receiveDir}`);
+	console.log(`Passcode    : ${!CONFIG.passcode ? "off" : CONFIG.passcode.toLowerCase() === "random" ? "random 6-digit code per transfer" : "fixed code (set in config)"}`);
 	console.log(`LAN IP      : ${pickLanIp()}`);
 	apps();
 }
@@ -507,6 +601,6 @@ switch (cmd) {
 		apps();
 		break;
 	default:
-		console.log("Usage: phone-drop.mjs <send <file> [--open app] [--download] | receive [--to dir] | setup | status | apps> [--http|--https] [--ip addr] [--port n] [--timeout min] [--no-browser]");
+		console.log("Usage: phone-drop.mjs <send <file> [--open app] [--download] | receive [--to dir] | setup | status | apps> [--passcode [code]|--no-passcode] [--http|--https] [--ip addr] [--port n] [--timeout min] [--no-browser]");
 		process.exit(cmd ? 1 : 0);
 }

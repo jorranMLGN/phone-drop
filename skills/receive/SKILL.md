@@ -1,6 +1,6 @@
 ---
 name: receive
-description: Receive files from the user's phone (iPhone or Android) onto this computer over the local Wi-Fi. Shows a QR code that opens an upload page on the phone. Use when the user wants to upload, send, copy, transfer or get photos, videos, screenshots or files from their phone to the computer/PC/laptop.
+description: 📱 → 💻 Receive files from the user's phone (iPhone or Android) onto this computer over the local Wi-Fi. Shows a QR code that opens an upload page on the phone. Use when the user wants to upload, send, copy, transfer or get photos, videos, screenshots or files from their phone to the computer/PC/laptop.
 argument-hint: "[destination folder]"
 ---
 
@@ -16,6 +16,10 @@ Script: `node "${CLAUDE_PLUGIN_ROOT}/scripts/phone-drop.mjs"`
 2. **Start:** run `node "${CLAUDE_PLUGIN_ROOT}/scripts/phone-drop.mjs" receive [--to "<dir>"]` **with `run_in_background: true`**. It uses HTTPS if the one-time setup was done, otherwise HTTP (no setup needed).
 3. Tell the user in one or two lines what to do: scan the QR with the camera, open the link, tap **Choose photos or files** (they upload immediately), and tap **Done** when finished. Also give the `Link:` the script printed.
 4. The server stops when the phone taps **Done**, after 2 minutes without new uploads (once at least one file has arrived), or at the timeout. When the background task finishes, list the received files (the script prints their full paths). If it's relevant, offer to do something with them.
+
+## Passcode (optional)
+
+If the user asks for a passcode (or one is configured), the phone has to enter it before it can upload. Pass `--passcode` for a random 6-digit code, or `--passcode <code>` for a specific one. `--no-passcode` overrides the config. The script prints `Passcode: …`. **Always tell the user that code**, because it is not shown on the QR page.
 
 ## Notes
 

@@ -7,7 +7,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
  * @param {{ title: string, link: string, steps: string[], fileName?: string }} page
  *   `steps` may contain trusted inline HTML (<b>); everything else is escaped.
  */
-export async function renderQrPage({ title, link, steps, fileName }) {
+export async function renderQrPage({ title, link, steps, fileName, passcode }) {
 	const svg = await QRCode.toString(link, { type: "svg", errorCorrectionLevel: "M", margin: 2 });
 	return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title>
@@ -21,9 +21,10 @@ h1{font-size:20px;margin:0 0 4px}.file{color:var(--muted);font-size:14px;word-br
 ol{text-align:left;padding-left:20px;margin:20px 0 8px}li{margin:4px 0}
 code{font-size:12px;color:var(--muted);word-break:break-all;display:block;margin-top:12px}
 b{color:var(--accent)}
+.pass{margin:14px auto 0;max-width:300px;font-size:14px;padding:9px 12px;border-radius:12px;background:var(--bg);color:var(--muted)}
 </style></head><body><main>
 <h1>${esc(title)}</h1>${fileName ? `<div class="file">${esc(fileName)}</div>` : ""}
-<div class="qr">${svg}</div>
+<div class="qr">${svg}</div>${passcode ? '<div class="pass">🔒 Passcode required. The code is shown in Claude, not on this page.</div>' : ""}
 <ol>${steps.map((s) => `<li>${s}</li>`).join("")}</ol>
 <code>${esc(link)}</code>
 </main></body></html>`;
@@ -47,6 +48,12 @@ export const STEPS = {
 		"Scan with your phone's <b>Camera</b> (same Wi-Fi) and open the link.",
 		"Tap <b>Choose photos or files</b>. They upload straight away.",
 		"Tap <b>Done</b> when finished. Files appear in the folder above.",
+	],
+	withPasscode: (steps) => [steps[0], "Enter the <b>passcode</b> on your phone. Claude shows it in the chat.", ...steps.slice(1)],
+	appWithPasscode: (name) => [
+		"Scan with your phone's <b>Camera</b> (same Wi-Fi) and open the link.",
+		"Enter the <b>passcode</b>. Claude shows it in the chat.",
+		`Tap <b>Open</b> to switch to ${cap(name)}, then confirm. It downloads the file straight from this computer.`,
 	],
 	app: (name) => [
 		"Scan with your phone's <b>Camera</b> (same Wi-Fi).",

@@ -1,16 +1,6 @@
 #!/usr/bin/env node
-// phone-drop: serve a file once over your local network and show a QR code for your phone.
-// By default the phone just downloads it; optionally the link opens an app instead
-// (e.g. Feather: feather://install/<https-url>).
-//
-//   node phone-drop.mjs send <file> [--open <app|template>] [--download]
-//   node phone-drop.mjs receive [--to <dir>]     phone → computer: QR opens an upload page
-//   node phone-drop.mjs setup     one-time: create a local CA so the phone trusts HTTPS links
-//   node phone-drop.mjs status    show config, certificate and network info
-//   node phone-drop.mjs apps      list configured open-in apps
-//
-// Options: --open <app|template>  --download  --to <dir>  --max-mb <n>  --passcode [code]  --no-passcode  --http  --https  --ip <addr>  --port <n>
-//          --timeout <minutes>  --no-browser
+// phone-drop: move files between your computer and your phone over local Wi-Fi with a QR code.
+// Used as a CLI (`npx phone-drop`) and by the Claude Code plugin. Run `phone-drop --help` for usage.
 
 import { execFileSync, spawn } from "node:child_process";
 import crypto from "node:crypto";
@@ -20,6 +10,7 @@ import https from "node:https";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import QRCode from "qrcode";
 import { renderQrPage, STEPS } from "./qr-page.mjs";
 import { renderUploadPage } from "./upload-page.mjs";
 import { renderGatePage } from "./gate-page.mjs";
@@ -32,6 +23,9 @@ const CA_DER = path.join(STATE_DIR, "PhoneDropCA.cer");
 
 // ---------- args ----------
 const argv = process.argv.slice(2);
+const COMMANDS = ["send", "receive", "setup", "status", "apps", "help"];
+// `phone-drop photo.jpg` is short for `phone-drop send photo.jpg`.
+if (argv[0] && !COMMANDS.includes(argv[0]) && !argv[0].startsWith("-") && fs.existsSync(argv[0])) argv.unshift("send");
 const cmd = argv[0];
 function opt(name, fallback) {
 	const i = argv.indexOf(`--${name}`);
@@ -46,14 +40,20 @@ function die(msg) {
 }
 
 // ---------- config ----------
-// Defaults come from plugin.json's userConfig; values the user set with
-// `/plugin configure phone-drop@<marketplace>` live in Claude Code's settings.json.
+// Layers, later wins: defaults from plugin.json's userConfig → ~/.phone-drop/config.json (CLI users)
+// → values set with `/plugin configure phone-drop@<marketplace>` (Claude Code's settings.json) → flags.
+const CONFIG_FILE = path.join(STATE_DIR, "config.json");
 function loadConfig() {
 	const config = {};
 	try {
 		const manifest = JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, ".claude-plugin", "plugin.json"), "utf8"));
 		for (const [k, v] of Object.entries(manifest.userConfig || {})) config[k] = v.default;
 	} catch {}
+	try {
+		Object.assign(config, JSON.parse(fs.readFileSync(CONFIG_FILE, "utf8")));
+	} catch (e) {
+		if (e.code !== "ENOENT") console.error(`Warning: ignoring ${CONFIG_FILE}: ${e.message}`);
+	}
 	try {
 		const dir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude");
 		const settings = JSON.parse(fs.readFileSync(path.join(dir, "settings.json"), "utf8"));
@@ -214,6 +214,8 @@ async function showQrPage(page) {
 	const out = path.join(os.tmpdir(), `phone-drop-${Date.now()}.html`);
 	fs.writeFileSync(out, await renderQrPage(page));
 	if (!NO_BROWSER) openInBrowser(out);
+	// When a person runs this in a terminal, also draw the QR right there.
+	if (process.stdout.isTTY && !flag("no-terminal-qr")) console.log(`\n${await QRCode.toString(page.link, { type: "terminal", small: true })}`);
 	console.log(`QR page: ${out}`);
 }
 
@@ -361,11 +363,11 @@ async function send() {
 	let secure = transport === "https" || (transport === "auto" && caReady());
 	if (app) {
 		// Apps such as Feather only accept https links (and iOS App Transport Security blocks http).
-		if (!caReady()) die(`Opening in ${app.name} needs HTTPS, which needs the one-time setup. Run \`phone-drop.mjs setup\` first, or pass --download.`);
+		if (!caReady()) die(`Opening in ${app.name} needs HTTPS, which needs the one-time setup. Run \`phone-drop setup\` first, or pass --download.`);
 		if (transport === "http") die(`Opening in ${app.name} needs HTTPS, but transport is set to http.`);
 		secure = true;
 	}
-	if (secure && !caReady()) die("Transport is https but the one-time setup hasn't been done. Run `phone-drop.mjs setup` first.");
+	if (secure && !caReady()) die("Transport is https but the one-time setup hasn't been done. Run `phone-drop setup` first.");
 
 	const ip = pickLanIp();
 	const port = Number(opt("port", secure ? "8443" : "8080"));
@@ -459,7 +461,7 @@ async function receive() {
 	fs.mkdirSync(dest, { recursive: true });
 	const transport = flag("https") ? "https" : flag("http") ? "http" : CONFIG.transport;
 	const secure = transport === "https" || (transport === "auto" && caReady());
-	if (secure && !caReady()) die("Transport is https but the one-time setup hasn't been done. Run `phone-drop.mjs setup` first.");
+	if (secure && !caReady()) die("Transport is https but the one-time setup hasn't been done. Run `phone-drop setup` first.");
 
 	const ip = pickLanIp();
 	const port = Number(opt("port", secure ? "8443" : "8080"));
@@ -584,6 +586,50 @@ function apps() {
 	console.log(`Auto-open   : ${auto.join(", ") || "(none, always download)"}`);
 }
 
+function version() {
+	try {
+		return JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, "package.json"), "utf8")).version;
+	} catch {
+		return "unknown";
+	}
+}
+
+const HELP = `phone-drop ${version()}: move files between your computer and your phone with a QR code.
+
+Usage
+  phone-drop <file>                 send a file to your phone (short for "send")
+  phone-drop send <file>            computer → phone: scan the QR, the phone downloads it
+  phone-drop receive [--to <dir>]   phone → computer: scan the QR, pick files, they upload
+  phone-drop setup                  one-time HTTPS setup (encryption + open-in-app links)
+  phone-drop status                 show settings, certificate and network info
+  phone-drop apps                   list open-in apps and auto-open rules
+
+Options
+  --open <app|template>   open the file in an app (e.g. feather) instead of downloading
+  --download              plain download, ignore auto-open rules
+  --to <dir>              receive: folder to save into (default: Downloads)
+  --max-mb <n>            receive: maximum size per file
+  --passcode [code]       require a passcode on the phone (random 6 digits if no code given)
+  --no-passcode           no passcode for this transfer
+  --http | --https        force a transport (default: HTTPS once set up, otherwise HTTP)
+  --ip <addr>             LAN IP to use (default: auto-detected Wi-Fi/Ethernet)
+  --port <n>              port (default 8443 HTTPS, 8080 HTTP)
+  --timeout <minutes>     stop after this long with nothing transferred (default 15)
+  --no-browser            don't open the QR page in the browser
+  --no-terminal-qr        don't draw the QR code in the terminal
+
+Settings: ${CONFIG_FILE}  (keys: transport, apps, auto_open, receive_dir, passcode, timeout_minutes)
+Docs:     https://github.com/jorranMLGN/phone-drop`;
+
+if (flag("version") || cmd === "-v") {
+	console.log(version());
+	process.exit(0);
+}
+if (flag("help") || cmd === "-h" || cmd === "help") {
+	console.log(HELP);
+	process.exit(0);
+}
+
 switch (cmd) {
 	case "setup":
 		await setup();
@@ -601,6 +647,7 @@ switch (cmd) {
 		apps();
 		break;
 	default:
-		console.log("Usage: phone-drop.mjs <send <file> [--open app] [--download] | receive [--to dir] | setup | status | apps> [--passcode [code]|--no-passcode] [--http|--https] [--ip addr] [--port n] [--timeout min] [--no-browser]");
+		if (cmd) console.error(`Unknown command or file not found: ${cmd}\n`);
+		console.log(HELP);
 		process.exit(cmd ? 1 : 0);
 }

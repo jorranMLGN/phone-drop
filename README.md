@@ -1,10 +1,11 @@
 # phone-drop
 
 <p align="center">
-  <img src="docs/images/banner.png" alt="phone-drop: AirDrop for Claude Code. Move files between your computer and your phone with one QR scan." width="100%">
+  <img src="docs/images/banner.png" alt="phone-drop: AirDrop for AI agents. Move files between your computer and your phone with one QR scan." width="100%">
 </p>
 
 <p align="center">
+  <a href="https://www.npmjs.com/package/phone-drop"><img alt="npm" src="https://img.shields.io/npm/v/phone-drop?color=5a64e8&label=npx%20phone-drop"></a>
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-5a64e8"></a>
   <img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude_Code-plugin-8b5cf6">
   <img alt="Works with iPhone and Android" src="https://img.shields.io/badge/phone-iPhone_%7C_Android-22a05b">
@@ -12,13 +13,15 @@
   <img alt="No file size limit" src="https://img.shields.io/badge/file_size-no_limit-e8566c">
 </p>
 
-<p align="center"><b>Ask Claude to put a file on your phone, or to grab files from it.</b><br>
+<p align="center"><b>Ask your AI agent (or your terminal) to put a file on your phone, or to grab files from it.</b><br>
 A QR code appears, you scan it, and the files go straight between your phone and your computer over your own Wi-Fi.<br>
 No app, no cable, no cloud, no account, <b>no file size limit</b>.</p>
 
 ```text
+$ npx phone-drop holiday-video.mov        # or just ask Claude Code / Codex / Gemini / Cursor
+
 You:     "put ~/Downloads/holiday-video.mov on my phone"
-Claude:  starts a one-shot server and opens a QR page in your browser
+Agent:   starts a one-shot server and opens a QR page in your browser
 Phone:   Camera → scan → Download → done
 
 You:     "let me upload some photos from my phone"
@@ -51,7 +54,7 @@ Phone:   Camera → scan → choose photos → they upload and land in ~/Downloa
 - 🔁 **Both directions.** Send files to your phone, or upload photos, videos and documents from it.
 - 🔒 **Private by design.** No cloud, no account, no third party. Each transfer uses a random one-time link that stops working when it's done. Add an optional **passcode** and HTTPS encryption for extra protection.
 - 🧩 **Opens files in apps.** One scan can open the file in an app instead. [Feather](https://github.com/claration/Feather) (iOS `.ipa` sideloading) is built in, and you can add your own with a URL template.
-- 💬 **Just ask Claude.** No commands to remember. Claude finds the file, picks the right mode and tells you when it has arrived.
+- 💬 **Just ask your AI.** A ready-made [Claude Code](https://code.claude.com) plugin, a [snippet](#use-it-with-other-ai-agents) for Codex, Gemini CLI, Cursor, Copilot and others, or plain `npx phone-drop` in your own terminal.
 
 ### Compared to the usual ways
 
@@ -76,20 +79,31 @@ Phone:   Camera → scan → choose photos → they upload and land in ~/Downloa
 4. [Optional: passcode](#optional-passcode)
 5. [Optional: one-time HTTPS setup](#optional-one-time-https-setup)
 6. [Open in apps (Feather and your own)](#open-in-apps-feather-and-your-own)
-7. [Configuration](#configuration)
-8. [Troubleshooting](#troubleshooting)
-9. [Security notes](#security-notes)
-10. [Uninstall](#uninstall)
-11. [Command-line reference](#command-line-reference)
+7. [Use it with other AI agents](#use-it-with-other-ai-agents)
+8. [Configuration](#configuration)
+9. [Troubleshooting](#troubleshooting)
+10. [Security notes](#security-notes)
+11. [Uninstall](#uninstall)
+12. [Command-line reference](#command-line-reference)
 
 ---
 
 ## Install
 
 **Requirements:**
-- [Claude Code](https://code.claude.com)
 - [Node.js](https://nodejs.org) 18 or newer
 - Your computer and phone on the **same Wi-Fi network**
+
+### From your terminal (any OS, no AI needed)
+
+```bash
+npx phone-drop photo.jpg        # send a file to your phone
+npx phone-drop receive          # get files from your phone
+```
+
+Or install it once with `npm install -g phone-drop` and drop the `npx`. The QR code opens in your browser **and** is drawn right in the terminal. Run `phone-drop --help` for all options.
+
+### As a Claude Code plugin
 
 Inside Claude Code:
 
@@ -111,7 +125,11 @@ claude plugin install phone-drop@phone-drop
 ```
 </details>
 
-Restart Claude Code (or run `/reload-plugins`). Claude Code installs the one npm dependency (`qrcode`) automatically from `package-lock.json`.
+Restart Claude Code (or run `/reload-plugins`). Claude Code installs the one npm dependency (`qrcode`) automatically from `package-lock.json`. Then just ask, or use `/phone-drop:send` (💻 → 📱) and `/phone-drop:receive` (📱 → 💻).
+
+### With other AI agents
+
+See [Use it with other AI agents](#use-it-with-other-ai-agents): one snippet for Codex, Gemini CLI, Cursor, GitHub Copilot, Windsurf, Aider and the like.
 
 ## Send a file
 
@@ -298,9 +316,47 @@ You can also try a template once without saving it: `--open "myapp://import?url=
 
 Check the app's own documentation for its URL scheme. Most apps that support "install from URL" or "import from URL" document one.
 
+## Use it with other AI agents
+
+phone-drop is a plain command-line tool, so any AI agent that can run terminal commands can use it. Paste this into your agent's instructions file:
+- `AGENTS.md` (Codex, GitHub Copilot, Cursor, Windsurf and others that read it)
+- `GEMINI.md` (Gemini CLI)
+- `.cursor/rules`
+- your Aider conventions file
+
+```markdown
+## Sending files to my phone (phone-drop)
+
+When I ask to send/put a file on my phone, or to get/upload files from my phone:
+- Computer → phone: run `npx -y phone-drop send "<absolute path>"`
+  (add `--open feather` to open an .ipa in Feather, `--download` to force a plain download).
+- Phone → computer: run `npx -y phone-drop receive` (add `--to "<folder>"` to choose where files go).
+- Add `--passcode` if I ask for a passcode, and tell me the `Passcode:` line it prints.
+- Run it in the background if you can. It keeps running until the transfer is done
+  (exit code 0 = done, 2 = timed out). A QR page opens in my browser automatically;
+  also give me the `Link:` line it prints.
+- When it finishes, tell me what was transferred (receive prints the saved file paths).
+- `npx -y phone-drop --help` lists every option.
+```
+
+> **Agents that can't run commands in the background** block until the phone has the file. That's fine, because the QR page opens in your browser by itself. But they can't relay a *random* passcode in time. Use a fixed passcode in `~/.phone-drop/config.json` instead (see below).
+
 ## Configuration
 
-Open the settings dialog in Claude Code:
+**Terminal and other agents:** create `~/.phone-drop/config.json`. All keys are optional:
+
+```json
+{
+  "transport": "auto",
+  "apps": ["feather=feather://install/{url}", "myapp=myapp://import?url={url_encoded}"],
+  "auto_open": ["ipa=feather", "tipa=feather"],
+  "receive_dir": "~/Downloads",
+  "passcode": "",
+  "timeout_minutes": 15
+}
+```
+
+**Claude Code:** open the settings dialog:
 
 ```text
 /plugin configure phone-drop@phone-drop
@@ -315,7 +371,7 @@ Open the settings dialog in Claude Code:
 | **Passcode** | *(empty: off)* | `random`: new 6-digit code per transfer. Any other value: that fixed code (stored in plain text in settings.json). |
 | **Timeout (minutes)** | `15` | Stop serving if nothing is transferred. |
 
-Claude Code saves these in your `settings.json` under `pluginConfigs`, and the script reads them from there. Restart Claude Code after you change them.
+Claude Code saves these in your `settings.json` under `pluginConfigs`, and the script reads them from there. Restart Claude Code after you change them. If both exist, the Claude Code settings win over `config.json`, and command-line flags win over both.
 
 ## Troubleshooting
 
@@ -347,24 +403,30 @@ claude plugin uninstall phone-drop@phone-drop
 claude plugin marketplace remove phone-drop
 ```
 
+From npm: `npm uninstall -g phone-drop` (nothing to do if you only used `npx`).
+
 If you did the HTTPS setup:
 - delete `~/.phone-drop/` on your computer
 - remove the **Phone Drop Local CA** profile from your phone
 
 ## Command-line reference
 
-The plugin is two Claude Code skills ([send](skills/send/SKILL.md), [receive](skills/receive/SKILL.md)) wrapped around one Node script, which you can also run on its own:
+Everything is one Node script: the `phone-drop` command on npm. The Claude Code plugin is two skills ([send](skills/send/SKILL.md), [receive](skills/receive/SKILL.md)) wrapped around that same script.
 
 ```bash
-node scripts/phone-drop.mjs send <file>                  # download (or auto-open by file type)
-node scripts/phone-drop.mjs send <file> --open feather   # open in a configured app
-node scripts/phone-drop.mjs send <file> --download       # always a plain download
-node scripts/phone-drop.mjs receive                      # phone → computer (upload page)
-node scripts/phone-drop.mjs receive --to ~/Desktop       # …into a specific folder
-node scripts/phone-drop.mjs setup                        # one-time HTTPS setup
-node scripts/phone-drop.mjs status                       # transport, apps, CA, LAN IP
-node scripts/phone-drop.mjs apps                         # configured apps + auto-open rules
+phone-drop <file>                          # short for "send"
+phone-drop send <file>                     # download (or auto-open by file type)
+phone-drop send <file> --open feather      # open in a configured app
+phone-drop send <file> --download          # always a plain download
+phone-drop receive                         # phone → computer (upload page)
+phone-drop receive --to ~/Desktop          # …into a specific folder
+phone-drop setup                           # one-time HTTPS setup
+phone-drop status                          # transport, apps, CA, LAN IP
+phone-drop apps                            # configured apps + auto-open rules
+phone-drop --help | --version
 ```
+
+(Use `npx phone-drop …` if it isn't installed globally.)
 
 | Option | Default | |
 |---|---|---|
@@ -379,6 +441,7 @@ node scripts/phone-drop.mjs apps                         # configured apps + aut
 | `--port <n>` | `8443` (HTTPS), `8080` (HTTP, setup) | |
 | `--timeout <min>` | `15` | stop after this long with nothing being transferred (never during a transfer) |
 | `--no-browser` | off | don't open the QR page (its path is still printed) |
+| `--no-terminal-qr` | off | don't draw the QR code in the terminal (only drawn when run in a real terminal) |
 
 Exit codes: `0` delivered/received, `1` error, `2` timed out (nothing transferred).
 

@@ -129,8 +129,8 @@ p{font-size:23px;line-height:1.45;color:#c4c4d6;margin:0 0 30px}
 </style></head><body>
 <div class="left">
 <div class="mark"><div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M12 7v7m-3-3 3 3 3-3"/></svg></div>
-<div class="name">phone-drop<small>a Claude Code plugin</small></div></div>
-<h1>AirDrop for<br><em>Claude Code</em></h1>
+<div class="name">phone-drop<small>npx phone-drop · Claude Code plugin</small></div></div>
+<h1>AirDrop for<br><em>AI agents</em></h1>
 <p>Move files between your computer and your phone with one QR scan. Over your own Wi-Fi.</p>
 <div class="chips"><span class="chip"><b>∞</b> No size limit</span><span class="chip">No app</span><span class="chip">No cloud</span><span class="chip">iPhone &amp; Android</span><span class="chip">Both directions</span></div>
 </div>

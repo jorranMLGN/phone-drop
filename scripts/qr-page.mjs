@@ -9,7 +9,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
  * @param {{ title: string, link: string, steps: string[], fileName?: string }} page
  *   `steps` may contain trusted inline HTML (<b>); everything else is escaped.
  */
-export async function renderQrPage({ title, link, steps, fileName, passcode, controlBase, demo, createdAt, timeoutMin, receive, demoFiles, theme = resolveTheme() }) {
+export async function renderQrPage({ title, link, steps, fileName, passcode, controlBase, demo, createdAt, timeoutMin, receive, demoFiles, theme = resolveTheme(), qrSize = 280 }) {
 	const created = createdAt ? new Date(createdAt) : null;
 	const svg = await QRCode.toString(link, { type: "svg", errorCorrectionLevel: "M", margin: 2 });
 	return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -29,7 +29,8 @@ li{animation:pd-rise .45s cubic-bezier(.2,.8,.2,1) both}li:nth-child(1){animatio
 code,.pass{animation:pd-fade .6s .6s both}.credits{animation:pd-fade .8s .8s both}
 main{background:var(--card);border-radius:20px;padding:32px 36px;max-width:440px;margin:16px;box-shadow:0 10px 40px #0002;text-align:center}
 h1{font-size:20px;margin:0 0 4px}.file{color:var(--muted);font-size:14px;word-break:break-all}
-.qr{background:#fff;border-radius:14px;padding:10px;width:280px;max-width:100%;margin:16px auto 0;box-sizing:border-box}
+.qr{background:#fff;border-radius:14px;padding:10px;width:${Number(qrSize) || 280}px;max-width:100%;margin:16px auto 0;box-sizing:border-box}
+main{max-width:max(440px, ${(Number(qrSize) || 280) + 160}px)}
 ol{text-align:left;padding-left:20px;margin:20px 0 8px}li{margin:4px 0}
 code{font-size:12px;color:var(--muted);word-break:break-all;display:block;margin-top:12px}
 b{color:var(--accent)}

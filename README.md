@@ -360,6 +360,14 @@ When I ask to send/put a file on my phone, or to get/upload files from my phone:
   "passcode": "",
   "theme": "ocean",
   "custom_colors": "",
+  "qr_size": 280,
+  "device_name": "",
+  "open_browser": true,
+  "terminal_qr": true,
+  "port": 0,
+  "lan_ip": "",
+  "max_upload_mb": 0,
+  "receive_idle_minutes": 2,
   "timeout_minutes": 15
 }
 ```
@@ -379,6 +387,14 @@ When I ask to send/put a file on my phone, or to get/upload files from my phone:
 | **Passcode** | *(empty: off)* | `random`: new 6-digit code per transfer. Any other value: that fixed code (stored in plain text in settings.json). |
 | **Color theme** | `ocean` | Colors of the pages on your phone (and the accent on the QR page): `ocean`, `violet`, `mint`, `sunset` or `mono`. |
 | **Custom colors** | *(empty)* | Your own accent: one or two hex codes, e.g. `#e11d48` or `#e11d48,#f59e0b`. Overrides the theme. |
+| **QR code size (px)** | `280` | Size of the QR code on the computer's page (160–640). Bigger scans more easily from a distance. |
+| **Device name** | your computer's hostname | The name your phone shows ("Send to …"). |
+| **Open QR page automatically** | on | Turn off to open the printed `QR page:` link yourself. |
+| **Draw QR code in the terminal** | on | Only applies when phone-drop runs in a real terminal window. |
+| **Preferred port** | `0` (= 8443 HTTPS / 8080 HTTP) | Port to try first. If it's busy, the next free one is used. |
+| **LAN IP** | automatic | Force your Wi-Fi/Ethernet IP if a VPN, Docker or WSL adapter gets picked. |
+| **Max upload size (MB)** | `0` (no limit) | Per-file limit for uploads from the phone. |
+| **Receive idle stop (minutes)** | `2` | When receiving, stop this long after the last upload. |
 | **Timeout (minutes)** | `15` | Stop serving if nothing is transferred. |
 
 ### Themes
@@ -458,6 +474,9 @@ phone-drop --help | --version
 | `--timeout <min>` | `15` | stop after this long with nothing being transferred (never during a transfer) |
 | `--no-browser` | off | don't open the QR page (its path is still printed) |
 | `--theme <name|#hex[,#hex]>` | *Color theme* setting | `ocean`, `violet`, `mint`, `sunset`, `mono`, or your own hex colors |
+| `--qr-size <px>` | *QR code size* | 160–640 |
+| `--name <text>` | *Device name* | name shown on the phone |
+| `--idle <minutes>` | *Receive idle stop* | `receive`: stop this long after the last upload |
 | `--no-terminal-qr` | off | don't draw the QR code in the terminal (only drawn when run in a real terminal) |
 
 Exit codes: `0` delivered/received, `1` error, `2` timed out (nothing transferred), `3` stopped with the QR page's **Stop & close** button.

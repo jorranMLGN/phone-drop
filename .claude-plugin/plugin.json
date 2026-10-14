@@ -1,6 +1,6 @@
 {
   "name": "phone-drop",
-  "version": "1.8.1",
+  "version": "1.9.0",
   "description": "Drop files between your computer and your phone over local Wi-Fi: scan a QR code to download to the phone or upload from it. Optional 'open in app' handlers, with Feather (.ipa sideloading) built in.",
   "author": {
     "name": "jorranMLGN",
@@ -81,6 +81,62 @@
       "title": "Custom colors",
       "description": "Optional: your own accent colors as one or two hex codes, e.g. #e11d48 or #e11d48,#f59e0b. Overrides the color theme. Leave empty to use the theme.",
       "default": ""
+    },
+    "qr_size": {
+      "type": "number",
+      "title": "QR code size (px)",
+      "description": "Size of the QR code on the page your computer shows. Bigger scans more easily from a distance.",
+      "default": 280,
+      "min": 160,
+      "max": 640
+    },
+    "device_name": {
+      "type": "string",
+      "title": "Device name",
+      "description": "Name your phone shows for this computer (\"Send to …\"). Leave empty to use the computer's hostname.",
+      "default": ""
+    },
+    "open_browser": {
+      "type": "boolean",
+      "title": "Open QR page automatically",
+      "description": "Open the QR page in your browser when a transfer starts. Turn off if you'd rather open the printed link yourself.",
+      "default": true
+    },
+    "terminal_qr": {
+      "type": "boolean",
+      "title": "Draw QR code in the terminal",
+      "description": "Also draw the QR code in the terminal when phone-drop runs in a real terminal window.",
+      "default": true
+    },
+    "port": {
+      "type": "number",
+      "title": "Preferred port",
+      "description": "Port to try first (0 = default: 8443 for HTTPS, 8080 for HTTP). If it's busy, the next free port is used.",
+      "default": 0,
+      "min": 0,
+      "max": 65535
+    },
+    "lan_ip": {
+      "type": "string",
+      "title": "LAN IP",
+      "description": "Force this computer's Wi-Fi/Ethernet IP if auto-detection picks a VPN, Docker or WSL adapter. Leave empty for automatic.",
+      "default": ""
+    },
+    "max_upload_mb": {
+      "type": "number",
+      "title": "Max upload size (MB)",
+      "description": "Maximum size per file the phone may upload (0 = no limit).",
+      "default": 0,
+      "min": 0,
+      "max": 1000000
+    },
+    "receive_idle_minutes": {
+      "type": "number",
+      "title": "Receive idle stop (minutes)",
+      "description": "When receiving, stop this many minutes after the last upload finished.",
+      "default": 2,
+      "min": 1,
+      "max": 120
     },
     "timeout_minutes": {
       "type": "number",

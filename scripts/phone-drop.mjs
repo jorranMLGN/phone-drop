@@ -34,7 +34,6 @@ function opt(name, fallback) {
 	return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[i + 1] : fallback;
 }
 const flag = (name) => argv.includes(`--${name}`);
-const NO_BROWSER = flag("no-browser");
 
 function die(msg) {
 	console.error(`ERROR: ${msg}`);
@@ -73,10 +72,21 @@ function loadConfig() {
 		passcode: typeof config.passcode === "string" ? config.passcode.trim() : "",
 		theme: typeof config.theme === "string" && config.theme.trim() ? config.theme.trim() : DEFAULT_THEME,
 		customColors: typeof config.custom_colors === "string" ? config.custom_colors.trim() : "",
+		qrSize: Math.min(640, Math.max(160, Number(config.qr_size) || 280)),
+		deviceName: typeof config.device_name === "string" && config.device_name.trim() ? config.device_name.trim() : os.hostname(),
+		openBrowser: config.open_browser !== false && config.open_browser !== "false",
+		terminalQr: config.terminal_qr !== false && config.terminal_qr !== "false",
+		port: Number(config.port) || 0,
+		lanIp: typeof config.lan_ip === "string" ? config.lan_ip.trim() : "",
+		maxUploadMb: Math.max(0, Number(config.max_upload_mb) || 0),
+		receiveIdle: Math.max(1, Number(config.receive_idle_minutes) || 2),
 		receiveDir: typeof config.receive_dir === "string" && config.receive_dir.trim() ? config.receive_dir.trim().replace(/^~(?=$|[\\/])/, os.homedir()) : path.join(os.homedir(), "Downloads"),
 	};
 }
 const CONFIG = loadConfig();
+const NO_BROWSER = flag("no-browser") || !CONFIG.openBrowser;
+const DEVICE_NAME = opt("name", CONFIG.deviceName);
+const QR_SIZE = Math.min(640, Math.max(160, Number(opt("qr-size", CONFIG.qrSize)) || 280));
 // --theme <name|#hex[,#hex]> wins over the config; custom colors win over the configured theme name.
 const THEME_FLAG = opt("theme");
 if (THEME_FLAG && !THEMES[THEME_FLAG.toLowerCase()] && !customTheme(THEME_FLAG)) die(`Unknown theme "${THEME_FLAG}". Use one of: ${Object.keys(THEMES).join(", ")}, or hex colors like "#e11d48" or "#e11d48,#f59e0b".`);
@@ -112,7 +122,7 @@ function isPrivate(ip) {
 	return /^10\./.test(ip) || /^192\.168\./.test(ip) || /^172\.(1[6-9]|2\d|3[01])\./.test(ip);
 }
 function pickLanIp() {
-	const forced = opt("ip");
+	const forced = opt("ip") || CONFIG.lanIp;
 	if (forced) return forced;
 	const virtual = /vEthernet|VirtualBox|VMware|WSL|Hyper-V|Loopback|Tailscale|ZeroTier|docker|utun|bridge/i;
 	const found = [];
@@ -230,7 +240,7 @@ const setStatus = (state, text) => Object.assign(STATUS, { state, text });
 async function showQrPage(page) {
 	const token = crypto.randomBytes(12).toString("hex");
 	const base = `/${token}/`;
-	const html = await renderQrPage({ ...page, controlBase: base, createdAt: new Date(), timeoutMin: Number(opt("timeout", CONFIG.timeout)), theme: THEME });
+	const html = await renderQrPage({ ...page, qrSize: QR_SIZE, controlBase: base, createdAt: new Date(), timeoutMin: Number(opt("timeout", CONFIG.timeout)), theme: THEME });
 	const control = http.createServer((req, res) => {
 		if (req.method === "GET" && req.url === base) return sendHtml(res, html);
 		if (req.method === "GET" && req.url === `${base}status`) return json(res, 200, STATUS);
@@ -250,7 +260,7 @@ async function showQrPage(page) {
 	const url = `http://127.0.0.1:${control.address().port}${base}`;
 	if (!NO_BROWSER) openInBrowser(url);
 	// When a person runs this in a terminal, also draw the QR right there.
-	if (process.stdout.isTTY && !flag("no-terminal-qr")) console.log(`\n${await QRCode.toString(page.link, { type: "terminal", small: true })}`);
+	if (process.stdout.isTTY && CONFIG.terminalQr && !flag("no-terminal-qr")) console.log(`\n${await QRCode.toString(page.link, { type: "terminal", small: true })}`);
 	console.log(`QR page: ${url}`);
 }
 
@@ -266,6 +276,7 @@ function openInBrowser(file) {
 // next free one; with --port the user asked for exactly that port, so a clash is an error.
 async function choosePort(preferred, host) {
 	if (opt("port")) return Number(opt("port"));
+	if (CONFIG.port) preferred = CONFIG.port;
 	const free = (port) =>
 		new Promise((resolve) => {
 			const probe = net.createServer();
@@ -455,7 +466,7 @@ async function send() {
 		const url = new URL(req.url, "http://x");
 		if (gate && req.method === "GET" && url.pathname === base) {
 			console.log(`Passcode screen opened by ${who}`);
-			return sendHtml(res, renderGatePage({ computer: os.hostname(), base, numeric: gate.numeric, what: app ? `opening ${safeName} in ${appName}` : `downloading ${safeName}`, theme: THEME }));
+			return sendHtml(res, renderGatePage({ computer: DEVICE_NAME, base, numeric: gate.numeric, what: app ? `opening ${safeName} in ${appName}` : `downloading ${safeName}`, theme: THEME }));
 		}
 		if (gate && req.method === "POST" && url.pathname === `${base}unlock`) {
 			return gate.unlock(req, res, (key) => finalLink(`${fileUrl}?k=${key}`));
@@ -537,9 +548,10 @@ async function receive() {
 	const base = `/${token}/`;
 	const link = `${secure ? "https" : "http"}://${ip}:${port}${base}`;
 	const gate = makeGate(resolvePasscode());
-	const maxBytes = Number(opt("max-mb", "0")) * 1048576;
+	const maxBytes = Number(opt("max-mb", CONFIG.maxUploadMb)) * 1048576;
 	const minutes = Number(opt("timeout", CONFIG.timeout));
-	const IDLE_MS = 2 * 60_000;
+	const idleMinutes = Math.max(1, Number(opt("idle", CONFIG.receiveIdle)) || 2);
+	const IDLE_MS = idleMinutes * 60_000;
 	const received = [];
 	let active = 0;
 	let idleTimer;
@@ -553,7 +565,7 @@ async function receive() {
 	const timer = startTimeout(minutes, "any upload", () => finish(`Timed out after ${minutes} min.`));
 	const armIdle = () => {
 		clearTimeout(idleTimer);
-		if (received.length && !active) idleTimer = setTimeout(() => finish("No new uploads for 2 minutes."), IDLE_MS);
+		if (received.length && !active) idleTimer = setTimeout(() => finish(`No new uploads for ${idleMinutes} minute${idleMinutes === 1 ? "" : "s"}.`), IDLE_MS);
 	};
 
 	// Never overwrite: "photo.jpg" → "photo (1).jpg" if it exists.
@@ -571,10 +583,10 @@ async function receive() {
 		if (req.method === "GET" && url.pathname === base) {
 			if (gate && !gate.ok(req, url)) {
 				console.log(`Passcode screen opened by ${who}`);
-				return sendHtml(res, renderGatePage({ computer: os.hostname(), base, numeric: gate.numeric, what: "receiving files", theme: THEME }));
+				return sendHtml(res, renderGatePage({ computer: DEVICE_NAME, base, numeric: gate.numeric, what: "receiving files", theme: THEME }));
 			}
 			console.log(`Upload page opened by ${who}`);
-			return sendHtml(res, renderUploadPage({ computer: os.hostname(), base, secure, key: gate ? gate.key : "", theme: THEME }));
+			return sendHtml(res, renderUploadPage({ computer: DEVICE_NAME, base, secure, key: gate ? gate.key : "", theme: THEME }));
 		}
 		if (gate && req.method === "POST" && url.pathname === `${base}unlock`) {
 			return gate.unlock(req, res, (key) => `${base}?k=${key}`);
@@ -649,6 +661,8 @@ function status() {
 	console.log(`Transport   : ${CONFIG.transport}`);
 	console.log(`Timeout     : ${CONFIG.timeout} min`);
 	console.log(`Receive to  : ${CONFIG.receiveDir}`);
+	console.log(`Device name : ${DEVICE_NAME}`);
+	console.log(`QR size     : ${QR_SIZE}px${CONFIG.openBrowser ? "" : " (browser not opened automatically)"}`);
 	console.log(`Theme       : ${THEME_FLAG || (CONFIG.customColors && customTheme(CONFIG.customColors) ? `custom (${CONFIG.customColors})` : CONFIG.theme)}`);
 	console.log(`Passcode    : ${!CONFIG.passcode ? "off" : CONFIG.passcode.toLowerCase() === "random" ? "random 6-digit code per transfer" : "fixed code (set in config)"}`);
 	console.log(`LAN IP      : ${pickLanIp()}`);
@@ -692,9 +706,14 @@ Options
   --timeout <minutes>     stop after this long with nothing transferred (default 15)
   --no-browser            don't open the QR page in the browser
   --no-terminal-qr        don't draw the QR code in the terminal
+  --qr-size <px>          size of the QR code on the QR page (160-640, default 280)
+  --name <text>           name the phone shows for this computer (default: hostname)
+  --idle <minutes>        receive: stop this long after the last upload (default 2)
   --theme <name|#hex>     page colors: ocean, violet, mint, sunset, mono, or "#e11d48[,#f59e0b]"
 
-Settings: ${CONFIG_FILE}  (keys: transport, apps, auto_open, receive_dir, passcode, theme, custom_colors, timeout_minutes)
+Settings: ${CONFIG_FILE}  (keys: transport, apps, auto_open, receive_dir, passcode, theme, custom_colors,
+          qr_size, device_name, open_browser, terminal_qr, port, lan_ip, max_upload_mb,
+          receive_idle_minutes, timeout_minutes)
 Docs:     https://github.com/jorranMLGN/phone-drop`;
 
 if (flag("version") || cmd === "-v") {

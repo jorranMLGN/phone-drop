@@ -192,6 +192,40 @@ await s.exit;
 	}
 }
 
+// --- settings via flags
+{
+	const x = await start(["receive", "--to", path.join(TMP, "flags"), "--name", "Test Laptop", "--qr-size", "420", "--max-mb", "1"]);
+	let page = await req("GET", x.link);
+	check("settings: --name is shown on the phone page", /Test Laptop/.test(page.body));
+	page = await req("GET", x.page);
+	check("settings: --qr-size sets the QR size", /\.qr\{[^}]*width:420px/.test(page.body));
+	const big = await req("PUT", `${x.link}upload?name=big.bin`, { body: Buffer.alloc(2 * 1048576) });
+	check("settings: --max-mb rejects bigger uploads", big.status === 413 || big.status === 0, String(big.status));
+	await req("POST", `${x.page}stop`);
+	await x.exit;
+}
+
+// --- settings via ~/.phone-drop/config.json (temporary home folder, plain HTTP)
+{
+	const home = path.join(TMP, "home");
+	fs.mkdirSync(path.join(home, ".phone-drop"), { recursive: true });
+	fs.writeFileSync(path.join(home, ".phone-drop", "config.json"), JSON.stringify({ device_name: "Config Laptop", qr_size: 200, open_browser: false, port: 18080, theme: "sunset" }));
+	const env = { ...process.env, USERPROFILE: home, HOME: home, CLAUDE_CONFIG_DIR: path.join(home, ".claude") };
+	const p = spawn(process.execPath, [path.join(ROOT, "scripts/phone-drop.mjs"), "receive", "--to", path.join(TMP, "cfg"), "--timeout", "1"], { env });
+	let out = "";
+	p.stdout.on("data", (d) => (out += d));
+	for (let i = 0; i < 50 && !/QR page/.test(out); i++) await sleep(100);
+	const link = (out.match(/Link: (\S+)/) || [])[1] || "";
+	const qrPage = (out.match(/QR page: (\S+)/) || [])[1] || "";
+	check("config.json: preferred port is used", /:1808\d\//.test(link), link);
+	const up = await req("GET", link);
+	check("config.json: device name and theme reach the phone page", /Config Laptop/.test(up.body) && /--accent:#ea580c/.test(up.body));
+	const qp = await req("GET", qrPage);
+	check("config.json: QR size", /\.qr\{[^}]*width:200px/.test(qp.body));
+	await req("POST", `${qrPage}stop`);
+	await new Promise((r) => p.on("exit", r));
+}
+
 // --- no passcode
 s = await start(["send", file, "--download", "--no-passcode"]);
 check("no passcode: QR link is the file itself", s.link.endsWith("secret.bin") && !s.code);

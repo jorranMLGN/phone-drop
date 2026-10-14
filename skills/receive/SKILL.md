@@ -15,7 +15,7 @@ Script: `node "${CLAUDE_PLUGIN_ROOT}/scripts/phone-drop.mjs"`
 1. **Destination.** By default files go to the configured *Receive folder* (or `~/Downloads` if none is set). If the user names a folder (or passed one as `$ARGUMENTS`), resolve it to an absolute path and pass `--to "<dir>"`.
 2. **Start:** run `node "${CLAUDE_PLUGIN_ROOT}/scripts/phone-drop.mjs" receive [--to "<dir>"]` **with `run_in_background: true`**. It uses HTTPS if the one-time setup was done, otherwise HTTP (no setup needed).
 3. Tell the user in one or two lines what to do: scan the QR with the camera, open the link, tap **Choose photos or files** (they upload immediately), and tap **Done** when finished. Also give the `Link:` the script printed.
-4. The server stops when the phone taps **Done**, after 2 minutes without new uploads (once at least one file has arrived), or at the timeout. When the background task finishes, list the received files (the script prints their full paths). If it's relevant, offer to do something with them.
+4. The server stops when the phone taps **Done**, after a few minutes without new uploads (*Receive idle stop*, default 2; `--idle <min>`) (once at least one file has arrived), or at the timeout. When the background task finishes, list the received files (the script prints their full paths). If it's relevant, offer to do something with them.
 
 ## Passcode (optional)
 

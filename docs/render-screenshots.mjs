@@ -87,7 +87,7 @@ for (const scheme of ["light", "dark"]) {
 for (const [name, page] of Object.entries(pages)) {
 	for (const scheme of ["light", "dark"]) {
 		const html = path.join(pagesDir, `${name}.html`);
-		fs.writeFileSync(html, (await renderQrPage({ ...page, controlBase: "/demo/", demo: true })).replace("</head>", "<style>*,*::before,*::after{animation:none!important;transition:none!important}</style></head>"));
+		fs.writeFileSync(html, (await renderQrPage({ ...page, controlBase: "/demo/", demo: true, createdAt: new Date("2026-10-14T14:32:00"), timeoutMin: 15 })).replace("</head>", "<style>*,*::before,*::after{animation:none!important;transition:none!important}</style></head>"));
 		const png = path.join(imagesDir, `${name}${scheme === "dark" ? "-dark" : ""}.png`);
 		execFileSync(browser, [
 			"--headless=new",

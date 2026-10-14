@@ -219,7 +219,7 @@ const setStatus = (state, text) => Object.assign(STATUS, { state, text });
 async function showQrPage(page) {
 	const token = crypto.randomBytes(12).toString("hex");
 	const base = `/${token}/`;
-	const html = await renderQrPage({ ...page, controlBase: base });
+	const html = await renderQrPage({ ...page, controlBase: base, createdAt: new Date(), timeoutMin: Number(opt("timeout", CONFIG.timeout)) });
 	const control = http.createServer((req, res) => {
 		if (req.method === "GET" && req.url === base) return sendHtml(res, html);
 		if (req.method === "GET" && req.url === `${base}status`) return json(res, 200, STATUS);

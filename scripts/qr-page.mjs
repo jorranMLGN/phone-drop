@@ -8,7 +8,8 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
  * @param {{ title: string, link: string, steps: string[], fileName?: string }} page
  *   `steps` may contain trusted inline HTML (<b>); everything else is escaped.
  */
-export async function renderQrPage({ title, link, steps, fileName, passcode, controlBase, demo }) {
+export async function renderQrPage({ title, link, steps, fileName, passcode, controlBase, demo, createdAt, timeoutMin }) {
+	const created = createdAt ? new Date(createdAt) : null;
 	const svg = await QRCode.toString(link, { type: "svg", errorCorrectionLevel: "M", margin: 2 });
 	return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title>
@@ -38,11 +39,13 @@ b{color:var(--accent)}
 @keyframes pd-pulse{50%{opacity:.25}}
 .close{margin-top:18px;font:inherit;font-size:14px;font-weight:600;padding:9px 18px;border-radius:10px;border:1px solid color-mix(in srgb,var(--muted) 35%,transparent);background:transparent;color:var(--muted);cursor:pointer;transition:background .15s,color .15s}
 .close:hover{background:var(--bg);color:var(--fg)}
+.meta{margin-top:8px;font-size:12.5px;color:var(--muted);animation:pd-fade .5s .35s both}.meta time{font-variant-numeric:tabular-nums}
 .bye{display:none;padding:40px 0 20px}.bye b{display:block;font-size:20px;margin-bottom:6px}.bye span{color:var(--muted)}
 body.closed main>*:not(.bye){display:none}body.closed .bye{display:block}
 </style></head><body><main>
 <h1>${esc(title)}</h1>${fileName ? `<div class="file">${esc(fileName)}</div>` : ""}
 ${controlBase ? '<div class="status" id="st"><i></i><span>Waiting for your phone…</span></div>' : ""}
+${created ? `<div class="meta">Created <time datetime="${created.toISOString()}" title="${esc(created.toLocaleString())}">${esc(created.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }))}</time>${timeoutMin ? ` · stops after ${esc(timeoutMin)} min without activity` : ""}</div>` : ""}
 <div class="qr">${svg}</div>${passcode ? '<div class="pass">🔒 Passcode required. The code is shown in Claude, not on this page.</div>' : ""}
 <ol>${steps.map((s) => `<li>${s}</li>`).join("")}</ol>
 <code>${esc(link)}</code>

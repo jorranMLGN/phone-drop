@@ -398,7 +398,7 @@ Claude Code saves these in your `settings.json` under `pluginConfigs`, and the s
 | No Phone Drop entry in Certificate Trust Settings | The profile isn't installed. See **Settings → General → VPN & Device Management**. |
 | The scan opens but the page **never loads** | The phone can't reach the computer: <br>• Same Wi-Fi? Not a guest network, no VPN on the phone? <br>• **Windows:** allow *Node.js* through the firewall for **Private** networks, and set your Wi-Fi profile to *Private*. <br>• **macOS:** allow incoming connections for `node`. |
 | Wrong IP in the QR (VPN, Docker or WSL adapter) | Tell Claude to use `--ip 192.168.x.y`, the IP of your Wi-Fi adapter. |
-| `Port 8443 is in use` | A previous transfer is still waiting (it stops after the timeout), or use `--port 9443`. |
+| `Port … is in use` | Only happens when you pass `--port` yourself. Without it, a busy port (e.g. another transfer still running) is skipped automatically and the next free one is used. |
 | `openssl not found` | Only needed for HTTPS. <br>• **Windows:** included with [Git for Windows](https://git-scm.com/download/win), or `winget install ShiningLight.OpenSSL.Light` <br>• **macOS:** `brew install openssl@3` <br>• **Linux:** the `openssl` package |
 | Your computer's IP changed | Nothing to do. A new server certificate is issued automatically, and the CA on the phone stays valid. |
 
@@ -454,7 +454,7 @@ phone-drop --help | --version
 | `--max-mb <n>` | no limit | `receive`: maximum size per file |
 | `--http` / `--https` | from *Transport* | force a transport for this transfer |
 | `--ip <addr>` | auto (prefers Wi-Fi/Ethernet over virtual adapters) | LAN IP to bind and put in the link |
-| `--port <n>` | `8443` (HTTPS), `8080` (HTTP, setup) | |
+| `--port <n>` | `8443` (HTTPS), `8080` (HTTP, setup) | without it, a busy port falls through to the next free one; with it, exactly that port |
 | `--timeout <min>` | `15` | stop after this long with nothing being transferred (never during a transfer) |
 | `--no-browser` | off | don't open the QR page (its path is still printed) |
 | `--theme <name|#hex[,#hex]>` | *Color theme* setting | `ocean`, `violet`, `mint`, `sunset`, `mono`, or your own hex colors |

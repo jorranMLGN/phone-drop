@@ -7,6 +7,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
 import https from "node:https";
+import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -261,6 +262,33 @@ function openInBrowser(file) {
 	} catch {}
 }
 
+// Without --port, a busy default port (e.g. another transfer still running) falls through to the
+// next free one; with --port the user asked for exactly that port, so a clash is an error.
+async function choosePort(preferred, host) {
+	if (opt("port")) return Number(opt("port"));
+	const free = (port) =>
+		new Promise((resolve) => {
+			const probe = net.createServer();
+			probe.once("error", () => resolve(null));
+			probe.listen(port, host, () => probe.close(() => resolve(probe.address?.()?.port ?? port)));
+		});
+	for (let p = preferred; p < preferred + 20; p++) {
+		if (await free(p)) {
+			if (p !== preferred) console.log(`Port ${preferred} is busy (another transfer?), using ${p}.`);
+			return p;
+		}
+	}
+	const any = await new Promise((resolve) => {
+		const probe = net.createServer();
+		probe.listen(0, host, () => {
+			const { port } = probe.address();
+			probe.close(() => resolve(port));
+		});
+	});
+	console.log(`Ports ${preferred}-${preferred + 19} are busy, using ${any}.`);
+	return any;
+}
+
 function listenOrDie(server, port, host) {
 	return new Promise((resolve) => {
 		server.once("error", (e) => die(e.code === "EADDRINUSE" ? `Port ${port} is in use (another phone-drop still running?). Use --port.` : e.message));
@@ -362,7 +390,7 @@ async function setup() {
 	const created = ensureCa();
 	console.log(created ? `Created local CA in ${STATE_DIR}` : `Using existing local CA in ${STATE_DIR}`);
 	const ip = pickLanIp();
-	const port = Number(opt("port", "8080"));
+	const port = await choosePort(8080, ip);
 	const der = fs.readFileSync(CA_DER);
 	const url = `http://${ip}:${port}/PhoneDropCA.cer`;
 	const minutes = Number(opt("timeout", CONFIG.timeout));
@@ -406,7 +434,7 @@ async function send() {
 	if (secure && !caReady()) die("Transport is https but the one-time setup hasn't been done. Run `phone-drop setup` first.");
 
 	const ip = pickLanIp();
-	const port = Number(opt("port", secure ? "8443" : "8080"));
+	const port = await choosePort(secure ? 8443 : 8080, ip);
 	const size = fs.statSync(abs).size;
 	const safeName = path.basename(abs).replace(/[^A-Za-z0-9._-]+/g, "_");
 	const token = crypto.randomBytes(12).toString("hex");
@@ -504,7 +532,7 @@ async function receive() {
 	if (secure && !caReady()) die("Transport is https but the one-time setup hasn't been done. Run `phone-drop setup` first.");
 
 	const ip = pickLanIp();
-	const port = Number(opt("port", secure ? "8443" : "8080"));
+	const port = await choosePort(secure ? 8443 : 8080, ip);
 	const token = crypto.randomBytes(12).toString("hex");
 	const base = `/${token}/`;
 	const link = `${secure ? "https" : "http"}://${ip}:${port}${base}`;

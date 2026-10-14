@@ -1,4 +1,4 @@
-// End-to-end tests: runs the real CLI on port 9443 and talks to it like a phone would.
+// End-to-end tests: runs the real CLI on a free port and talks to it like a phone would.
 //   npm test
 // Needs the one-time HTTPS setup (~/.phone-drop/ca.crt) because most tests use HTTPS.
 import { spawn } from "node:child_process";
@@ -6,6 +6,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
 import https from "node:https";
+import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,6 +18,13 @@ if (!fs.existsSync(CA_FILE)) {
 	process.exit(0);
 }
 const CA = fs.readFileSync(CA_FILE);
+// A port nothing else is using, so the tests don't clash with a real transfer that's running.
+const TEST_PORT = await new Promise((resolve) => {
+	const probe = net.createServer().listen(0, () => {
+		const { port } = probe.address();
+		probe.close(() => resolve(String(port)));
+	});
+});
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "phone-drop-test-"));
 let failures = 0;
 const check = (name, cond, extra = "") => {
@@ -24,9 +32,9 @@ const check = (name, cond, extra = "") => {
 	if (!cond) failures++;
 };
 
-function start(args) {
+function start(args, { port = true } = {}) {
 	return new Promise((resolve, reject) => {
-		const p = spawn(process.execPath, [path.join(ROOT, "scripts/phone-drop.mjs"), ...args, "--no-browser", "--port", "9443", "--timeout", "1"]);
+		const p = spawn(process.execPath, [path.join(ROOT, "scripts/phone-drop.mjs"), ...args, "--no-browser", ...(port ? ["--port", TEST_PORT] : []), "--timeout", "1"]);
 		let out = "";
 		const exit = new Promise((r) => p.on("exit", (c) => r(c)));
 		const onData = (d) => {
@@ -165,6 +173,24 @@ r = await req("GET", s.link);
 check("theme: default is ocean", /--accent:#2563eb/.test(r.body));
 await req("POST", `${s.page}stop`);
 await s.exit;
+
+// --- ports: a busy default port falls through to a free one; an explicit --port is strict
+{
+	const a = await start(["receive", "--http", "--to", path.join(TMP, "pa")], { port: false });
+	const b = await start(["receive", "--http", "--to", path.join(TMP, "pb")], { port: false });
+	const pa = new URL(a.link).port, pb = new URL(b.link).port;
+	check("ports: two transfers without --port get different ports", pa && pb && pa !== pb, `${pa} / ${pb}`);
+	check("ports: the second one says which port it took", /is busy .* using \d+/.test(b.out()), b.out().split("\n")[0]);
+	const strict = spawn(process.execPath, [path.join(ROOT, "scripts/phone-drop.mjs"), "receive", "--http", "--no-browser", "--to", path.join(TMP, "pc"), "--port", pa]);
+	let err = "";
+	strict.stderr.on("data", (d) => (err += d));
+	const code = await new Promise((r) => strict.on("exit", r));
+	check("ports: explicit --port on a busy port is an error", code === 1 && /in use/.test(err), err.trim());
+	for (const x of [a, b]) {
+		await req("POST", `${x.page}stop`);
+		await x.exit;
+	}
+}
 
 // --- no passcode
 s = await start(["send", file, "--download", "--no-passcode"]);

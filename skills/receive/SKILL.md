@@ -23,7 +23,7 @@ If the user asks for a passcode (or one is configured), the phone has to enter i
 
 ## Notes
 
-- The QR page (printed as `QR page: http://127.0.0.1:…`) shows live status and has a **Stop & close** button. If the user stops it there, the script exits with code 3. Tell them it was stopped, not that it failed.
+- The QR page (printed as `QR page: http://127.0.0.1:…`) shows live status, a live **Received** list with an **Open folder** button, and a **Stop & close** button. If the user stops it there, the script exits with code 3. Tell them it was stopped, not that it failed.
 - Files are never overwritten: `photo.jpg` becomes `photo (1).jpg` if a file with that name already exists. Incomplete uploads are discarded.
 - `--max-mb <n>` limits the size per file. `--http` / `--https` force a transport.
 - iPhone photos can arrive as `.HEIC` or `.JPG`, depending on how they were picked. If the user needs JPEG and the computer can't open HEIC, offer to convert them.

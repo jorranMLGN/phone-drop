@@ -211,7 +211,9 @@ const fillTemplate = (template, url) => template.replaceAll("{url_encoded}", enc
 
 // ---------- QR page / server helpers ----------
 // Live status shown on the QR page ("waiting" → "busy" → "done").
-const STATUS = { state: "waiting", text: "Waiting for your phone…" };
+const STATUS = { state: "waiting", text: "Waiting for your phone…", files: [] };
+// Folder the QR page's "Open folder" button may open (receive mode only).
+let OPEN_FOLDER = null;
 const setStatus = (state, text) => Object.assign(STATUS, { state, text });
 
 // The QR page is served by a tiny server on 127.0.0.1 (never the LAN) behind a random path,
@@ -223,6 +225,10 @@ async function showQrPage(page) {
 	const control = http.createServer((req, res) => {
 		if (req.method === "GET" && req.url === base) return sendHtml(res, html);
 		if (req.method === "GET" && req.url === `${base}status`) return json(res, 200, STATUS);
+		if (req.method === "POST" && req.url === `${base}open` && OPEN_FOLDER) {
+			openInBrowser(OPEN_FOLDER);
+			return json(res, 200, { ok: true });
+		}
 		if (req.method === "POST" && req.url === `${base}stop`) {
 			json(res, 200, { ok: true });
 			if (STATUS.state === "done") return;
@@ -576,6 +582,7 @@ async function receive() {
 				active--;
 				received.push(target);
 				console.log(`Received ${path.basename(target)} (${(bytes / 1048576).toFixed(1)} MB) from ${who}`);
+				STATUS.files.push({ name: path.basename(target), size: bytes, at: new Date().toISOString() });
 				setStatus("busy", `${received.length} file${received.length === 1 ? "" : "s"} received`);
 				timer.idle();
 				res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify({ saved: path.basename(target), bytes }));
@@ -596,7 +603,8 @@ async function receive() {
 	console.log(`Waiting for uploads over ${secure ? "HTTPS" : "HTTP"}; saving to ${dest}`);
 	console.log(`Link: ${link}`);
 	if (gate) console.log(`Passcode: ${gate.passcode} (tell the user; it is not shown on the QR page)`);
-	await showQrPage({ title: "Send files to this computer", fileName: `Saves to ${dest}`, link, passcode: !!gate, steps: gate ? STEPS.withPasscode(STEPS.receive) : STEPS.receive });
+	OPEN_FOLDER = dest;
+	await showQrPage({ title: "Send files to this computer", fileName: `Saves to ${dest}`, link, passcode: !!gate, receive: true, steps: gate ? STEPS.withPasscode(STEPS.receive) : STEPS.receive });
 }
 
 function status() {

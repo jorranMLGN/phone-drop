@@ -20,7 +20,7 @@ const TOKEN = "3f9c2a7e5b1d4c8a6e0f2b9d";
 const pages = {
 	"download-page": { title: "Download to your phone", fileName: "holiday-photos.zip", link: `http://${IP}:8080/${TOKEN}/holiday-photos.zip`, steps: STEPS.download },
 	"setup-page": { title: "Phone Drop: one-time HTTPS setup", link: `http://${IP}:8080/PhoneDropCA.cer`, steps: STEPS.setup },
-	"receive-page": { title: "Send files to this computer", fileName: "Saves to ~/Downloads", link: `https://${IP}:8443/${TOKEN}/`, steps: STEPS.receive },
+	"receive-page": { title: "Send files to this computer", fileName: "Saves to ~/Downloads", link: `https://${IP}:8443/${TOKEN}/`, steps: STEPS.receive, receive: true, demoFiles: [{ name: "IMG_2042.HEIC", meta: "2.8 MB · 14:34" }, { name: "IMG_2041.HEIC", meta: "3.3 MB · 14:33" }] },
 	"feather-page": { title: "Open in Feather", fileName: "MyApp.ipa", link: `feather://install/https://${IP}:8443/${TOKEN}/MyApp.ipa`, steps: STEPS.app("feather") },
 };
 
@@ -96,7 +96,7 @@ for (const [name, page] of Object.entries(pages)) {
 			`--force-dark-mode=${scheme === "dark"}`,
 			...(scheme === "dark" ? ["--blink-settings=preferredColorScheme=0"] : ["--blink-settings=preferredColorScheme=1"]),
 			(png.endsWith("banner.png") ? "--force-device-scale-factor=1" : "--force-device-scale-factor=2"),
-			`--window-size=560,${name === "setup-page" ? 800 : 760}`,
+			`--window-size=560,${name === "setup-page" ? 800 : name === "receive-page" ? 1000 : 760}`,
 			`--screenshot=${png}`,
 			pathToFileURL(html).href,
 		], { stdio: "ignore" });

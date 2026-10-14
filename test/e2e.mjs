@@ -133,6 +133,9 @@ r = await req("PUT", `${rb}upload?name=x.txt`, { body: "hello", headers: { "X-Ph
 check("receive: upload with key works", r.status === 200, r.body.toString());
 st = await status(s.page);
 check("receive: QR page status counts received files", st.state === "busy" && /1 file received/.test(st.text), JSON.stringify(st));
+check("receive: QR page lists the received file", st.files.length === 1 && st.files[0].name === "x.txt" && st.files[0].size === 5 && !isNaN(Date.parse(st.files[0].at)));
+r = await req("GET", s.page);
+check("receive: QR page has the Received list and Open folder button", /id="flist"/.test(r.body) && /Open folder/.test(r.body));
 r = await req("PUT", `${rb}upload?name=..%2F..%2Fevil.txt`, { body: "x", headers: { "X-Phone-Drop-Key": key } });
 check("receive: path traversal stays in the folder", JSON.parse(r.body).saved === "evil.txt" && fs.existsSync(path.join(dest, "evil.txt")));
 r = await req("PUT", `${rb}upload?name=x.txt`, { body: "again", headers: { "X-Phone-Drop-Key": key } });

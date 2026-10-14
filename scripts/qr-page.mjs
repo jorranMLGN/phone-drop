@@ -8,7 +8,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
  * @param {{ title: string, link: string, steps: string[], fileName?: string }} page
  *   `steps` may contain trusted inline HTML (<b>); everything else is escaped.
  */
-export async function renderQrPage({ title, link, steps, fileName, passcode, controlBase, demo, createdAt, timeoutMin }) {
+export async function renderQrPage({ title, link, steps, fileName, passcode, controlBase, demo, createdAt, timeoutMin, receive, demoFiles }) {
 	const created = createdAt ? new Date(createdAt) : null;
 	const svg = await QRCode.toString(link, { type: "svg", errorCorrectionLevel: "M", margin: 2 });
 	return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -40,6 +40,14 @@ b{color:var(--accent)}
 .close{margin-top:18px;font:inherit;font-size:14px;font-weight:600;padding:9px 18px;border-radius:10px;border:1px solid color-mix(in srgb,var(--muted) 35%,transparent);background:transparent;color:var(--muted);cursor:pointer;transition:background .15s,color .15s}
 .close:hover{background:var(--bg);color:var(--fg)}
 .meta{margin-top:8px;font-size:12.5px;color:var(--muted);animation:pd-fade .5s .35s both}.meta time{font-variant-numeric:tabular-nums}
+.files{margin-top:18px;text-align:left;border-top:1px solid color-mix(in srgb,var(--muted) 25%,transparent);padding-top:14px}
+.files h2{font-size:14px;margin:0 0 8px;display:flex;justify-content:space-between;align-items:center}.files h2 span{color:var(--muted);font-weight:500;font-size:12.5px}
+.files ul{list-style:none;padding:0;margin:0;max-height:220px;overflow:auto}
+.files li{display:flex;gap:10px;align-items:center;padding:7px 2px;font-size:13.5px;border-bottom:1px solid color-mix(in srgb,var(--muted) 12%,transparent);animation:pd-rise .35s cubic-bezier(.2,.8,.2,1) both}
+.files li .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.files li .m{color:var(--muted);font-size:12px;flex:none;font-variant-numeric:tabular-nums}
+.files li::before{content:"✓";color:#22a05b;font-weight:700;flex:none}
+.files .empty{color:var(--muted);font-size:13px;padding:4px 2px}.files li.empty::before{content:none}
+.files .open{margin-top:10px;font:inherit;font-size:13px;font-weight:600;padding:7px 12px;border-radius:9px;border:0;background:var(--bg);color:var(--accent);cursor:pointer}
 .bye{display:none;padding:40px 0 20px}.bye b{display:block;font-size:20px;margin-bottom:6px}.bye span{color:var(--muted)}
 body.closed main>*:not(.bye){display:none}body.closed .bye{display:block}
 </style></head><body><main>
@@ -49,10 +57,15 @@ ${created ? `<div class="meta">Created <time datetime="${created.toISOString()}"
 <div class="qr">${svg}</div>${passcode ? '<div class="pass">🔒 Passcode required. The code is shown in Claude, not on this page.</div>' : ""}
 <ol>${steps.map((s) => `<li>${s}</li>`).join("")}</ol>
 <code>${esc(link)}</code>
+${controlBase && receive ? `<section class="files"><h2>Received <span id="fcount"></span></h2><ul id="flist">${(demoFiles || []).map((f) => `<li><span class="n">${esc(f.name)}</span><span class="m">${esc(f.meta)}</span></li>`).join("") || '<li class="empty" style="animation:none">Nothing yet. Files appear here as they arrive.</li>'}</ul>${demo ? "" : '<button class="open" id="open">Open folder</button>'}</section>` : ""}
 ${controlBase ? '<button class="close" id="close">Stop &amp; close</button><div class="bye"><b>Closed</b><span>You can close this tab now.</span></div>' : ""}
 </main>${controlBase && !demo ? `<script>
 const base=${JSON.stringify(controlBase)},st=document.getElementById("st"),btn=document.getElementById("close");let last="waiting";
-function show(s){last=s.state;st.className="status "+s.state;st.querySelector("span").textContent=(s.state==="done"?"✓ ":"")+s.text;btn.textContent=s.state==="done"?"Close":"Stop & close";}
+const fl=document.getElementById("flist"),fc=document.getElementById("fcount"),op=document.getElementById("open");let shown=0;
+const fmt=n=>n<1024?n+" B":n<1048576?(n/1024).toFixed(0)+" KB":n<1073741824?(n/1048576).toFixed(1)+" MB":(n/1073741824).toFixed(2)+" GB";
+function files(list){if(!fl||!list||list.length===shown)return;if(!shown)fl.innerHTML="";for(const f of list.slice(shown)){const li=document.createElement("li"),n=document.createElement("span"),m=document.createElement("span");n.className="n";n.textContent=f.name;m.className="m";m.textContent=fmt(f.size)+" · "+new Date(f.at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});li.append(n,m);fl.prepend(li);}shown=list.length;fc.textContent=shown+" file"+(shown===1?"":"s");}
+if(op)op.onclick=()=>fetch(base+"open",{method:"POST"}).catch(()=>{});
+function show(s){last=s.state;st.className="status "+s.state;st.querySelector("span").textContent=(s.state==="done"?"✓ ":"")+s.text;btn.textContent=s.state==="done"?"Close":"Stop & close";files(s.files);}
 async function poll(){try{const r=await fetch(base+"status",{cache:"no-store"});show(await r.json());}catch{if(last!=="done")show({state:"stopped",text:"Stopped"});return;}setTimeout(poll,1000);}
 poll();
 btn.onclick=async()=>{try{await fetch(base+"stop",{method:"POST"})}catch{}window.close();setTimeout(()=>document.body.classList.add("closed"),150);};

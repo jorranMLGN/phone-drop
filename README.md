@@ -201,6 +201,7 @@ The page shows your computer's name and whether the connection is **Encrypted** 
 
 The files land in your **Downloads** folder, or in the folder you named or [configured](#configuration).
 
+- **On your computer**, the QR page keeps a live **Received** list: name, size and time of every file that arrived. An **Open folder** button opens the destination in Explorer/Finder.
 - **No overwriting:** existing files are never overwritten. `IMG_2041.JPG` becomes `IMG_2041 (1).JPG`.
 - **Interrupted uploads** are discarded, so you never end up with half a file.
 - **Stopping:** the server stops when you tap **Done**, after 2 minutes without new uploads, or at the timeout. Claude then lists what arrived.

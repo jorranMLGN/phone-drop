@@ -24,14 +24,14 @@ export function renderUploadPage({ computer, base, secure, key = "" }) {
 <title>Send to ${esc(computer)}</title>
 ${FAVICON}
 <style>
-:root{--bg:#f3f3f7;--fg:#16161a;--muted:#6c6c74;--card:#fff;--line:#e7e7ee;--accent:#5a64e8;--accent2:#8b5cf6;--soft:#eef0ff;--ok:#22a05b;--oksoft:#e3f6ea;--err:#d64545;--errsoft:#fde8e8;--shadow:0 1px 2px #0000000d,0 8px 24px #0000000f}
-@media (prefers-color-scheme:dark){:root{--bg:#0e0e12;--fg:#f2f2f6;--muted:#9a9aa6;--card:#1a1a20;--line:#2a2a33;--accent:#8f97ff;--accent2:#b18cff;--soft:#23253d;--ok:#4cc27e;--oksoft:#16301f;--err:#ff7070;--errsoft:#3a1a1a;--shadow:0 1px 2px #0006,0 8px 24px #0004}}
+:root{--bg:#f1f6fb;--fg:#0f172a;--muted:#64748b;--card:#fff;--line:#e2e8f0;--accent:#2563eb;--accent2:#06b6d4;--soft:#e0f2fe;--ok:#10b981;--oksoft:#d1fae5;--err:#dc2626;--errsoft:#fee2e2;--on-accent:#fff;--shadow:0 1px 2px #0f172a0d,0 8px 24px #0f172a12}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1220;--fg:#e8eef8;--muted:#94a3b8;--card:#131c2e;--line:#1e293b;--accent:#60a5fa;--accent2:#22d3ee;--soft:#132a46;--ok:#34d399;--oksoft:#0f2e25;--err:#f87171;--errsoft:#3a1616;--on-accent:#0b1220;--shadow:0 1px 2px #0006,0 8px 24px #0005}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif}
 main{max-width:480px;margin:0 auto;padding:max(20px,env(safe-area-inset-top)) 16px calc(120px + env(safe-area-inset-bottom))}
 svg{width:100%;height:100%;display:block}
 header{display:flex;align-items:center;gap:12px;margin:4px 0 22px}
-.logo{width:44px;height:44px;border-radius:13px;padding:10px;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 6px 16px #5a64e840;flex:none}
+.logo{width:44px;height:44px;border-radius:13px;padding:10px;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 6px 16px #2563eb40;flex:none}
 .brand{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
 h1{font-size:22px;line-height:1.2;margin:1px 0 0;display:flex;align-items:center;gap:7px;min-width:0}
 h1 .ic{width:22px;height:22px;color:var(--accent);flex:none}
@@ -67,12 +67,12 @@ li.err .sub{color:var(--err)}
 li.err button.retry{all:unset;color:var(--accent);font-weight:600;font-size:13px;margin-left:6px;cursor:pointer}
 .dock{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 70%,transparent)}
 .dock div{max-width:480px;margin:0 auto}
-.btn{display:block;width:100%;font:inherit;font-size:17px;font-weight:600;border:0;border-radius:16px;padding:16px;cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 8px 20px #5a64e83d}
+.btn{display:block;width:100%;font:inherit;font-size:17px;font-weight:600;border:0;border-radius:16px;padding:16px;cursor:pointer;color:var(--on-accent);background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 8px 20px #2563eb3d}
 .btn:disabled{opacity:.7;box-shadow:none}
 .btn.ghost{background:transparent;color:var(--muted);box-shadow:none;font-weight:500;padding:12px}
 .alert{display:none;margin:14px 2px;padding:12px 14px;border-radius:14px;background:var(--errsoft);color:var(--err);font-size:14px}.alert.on{display:block}
 .finish{display:none;text-align:center;padding:12vh 8px 0}
-.finish .ok{width:84px;height:84px;margin:0 auto 18px;border-radius:50%;padding:20px;color:#fff;background:var(--ok);box-shadow:0 10px 28px #22a05b4d;animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+.finish .ok{width:84px;height:84px;margin:0 auto 18px;border-radius:50%;padding:20px;color:#fff;background:var(--ok);box-shadow:0 10px 28px #10b9814d;animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
 @keyframes pop{from{transform:scale(.3);opacity:0}}
 .finish h2{margin:0 0 6px;font-size:24px}.finish p{margin:0;color:var(--muted)}
 body.done main>*:not(.finish),body.done .dock{display:none}body.done .finish{display:block}

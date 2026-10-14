@@ -14,12 +14,12 @@ export function renderGatePage({ computer, base, numeric, what }) {
 <title>Passcode · ${esc(computer)}</title>
 ${FAVICON}
 <style>
-:root{--bg:#f3f3f7;--fg:#16161a;--muted:#6c6c74;--card:#fff;--line:#e2e2ea;--accent:#5a64e8;--accent2:#8b5cf6;--soft:#eef0ff;--err:#d64545;--shadow:0 1px 2px #0000000d,0 8px 24px #0000000f}
-@media (prefers-color-scheme:dark){:root{--bg:#0e0e12;--fg:#f2f2f6;--muted:#9a9aa6;--card:#1a1a20;--line:#2e2e38;--accent:#8f97ff;--accent2:#b18cff;--soft:#23253d;--err:#ff7070;--shadow:0 1px 2px #0006,0 8px 24px #0004}}
+:root{--bg:#f1f6fb;--fg:#0f172a;--muted:#64748b;--card:#fff;--line:#e2e8f0;--accent:#2563eb;--accent2:#06b6d4;--soft:#e0f2fe;--ok:#10b981;--oksoft:#d1fae5;--err:#dc2626;--errsoft:#fee2e2;--on-accent:#fff;--shadow:0 1px 2px #0f172a0d,0 8px 24px #0f172a12}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1220;--fg:#e8eef8;--muted:#94a3b8;--card:#131c2e;--line:#1e293b;--accent:#60a5fa;--accent2:#22d3ee;--soft:#132a46;--ok:#34d399;--oksoft:#0f2e25;--err:#f87171;--errsoft:#3a1616;--on-accent:#0b1220;--shadow:0 1px 2px #0006,0 8px 24px #0005}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font:16px/1.45 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif}
 main{max-width:420px;margin:0 auto;padding:max(12vh,env(safe-area-inset-top)) 20px 40px;text-align:center}
-.lock{width:76px;height:76px;margin:0 auto 18px;border-radius:24px;padding:18px;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 10px 28px #5a64e84d}
+.lock{width:76px;height:76px;margin:0 auto 18px;border-radius:24px;padding:18px;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 10px 28px #2563eb4d}
 svg{width:100%;height:100%;display:block}
 h1{font-size:24px;margin:0 0 6px}p{margin:0 0 26px;color:var(--muted)}
 form{background:var(--card);border-radius:22px;padding:22px;box-shadow:var(--shadow)}
@@ -27,7 +27,7 @@ input{width:100%;font:inherit;font-size:30px;font-weight:600;letter-spacing:.35e
 input:focus{border-color:var(--accent)}
 input.bad{border-color:var(--err);animation:shake .35s}
 @keyframes shake{25%{transform:translateX(-8px)}50%{transform:translateX(7px)}75%{transform:translateX(-4px)}}
-button{display:block;width:100%;margin-top:14px;font:inherit;font-size:17px;font-weight:600;border:0;border-radius:14px;padding:15px;cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+button{display:block;width:100%;margin-top:14px;font:inherit;font-size:17px;font-weight:600;border:0;border-radius:14px;padding:15px;cursor:pointer;color:var(--on-accent);background:linear-gradient(135deg,var(--accent),var(--accent2))}
 button:disabled{opacity:.6}
 .msg{min-height:22px;margin-top:12px;font-size:14px;color:var(--err)}
 .foot{margin-top:22px;font-size:13px;color:var(--muted)}
@@ -35,7 +35,7 @@ ${MOTION_CSS}
 .lock{animation:pd-rise .5s cubic-bezier(.2,.8,.2,1) both}
 h1,main>p{animation:pd-fade .5s .1s both}
 form{animation:pd-rise .5s .15s cubic-bezier(.2,.8,.2,1) both;transition:box-shadow .3s}
-form.ok{box-shadow:0 0 0 3px #22a05b55,var(--shadow)}form.ok input{border-color:#22a05b}
+form.ok{box-shadow:0 0 0 3px #10b98155,var(--shadow)}form.ok input{border-color:#10b981}
 .foot{animation:pd-fade .6s .4s both}
 </style></head><body><main>
 <div class="lock">${LOCK}</div>

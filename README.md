@@ -158,7 +158,7 @@ Claude opens a page with a QR code in your browser (see the screenshot above). T
    - **iPhone:** Files → Downloads
    - **Android:** the Downloads app (or Files → Downloads)
 
-The server on your computer stops as soon as the download completes, and Claude tells you it arrived.
+The server on your computer stops as soon as the download completes, and Claude tells you it arrived. The QR page on your computer shows the **live status** (waiting → sending 45% → ✓ done). Its **Stop & close** button ends the transfer early.
 
 > **The first time on Windows**, a firewall prompt asks whether *Node.js* may accept connections. Allow it on **Private networks**.
 
@@ -448,7 +448,9 @@ phone-drop --help | --version
 | `--no-browser` | off | don't open the QR page (its path is still printed) |
 | `--no-terminal-qr` | off | don't draw the QR code in the terminal (only drawn when run in a real terminal) |
 
-Exit codes: `0` delivered/received, `1` error, `2` timed out (nothing transferred).
+Exit codes: `0` delivered/received, `1` error, `2` timed out (nothing transferred), `3` stopped with the QR page's **Stop & close** button.
+
+The QR page is served from `http://127.0.0.1:<random port>/<random token>/`, which is reachable only from your own computer. That lets it show live status and stop the transfer. Browsers only let a page close its own tab if a script opened it, so if the tab stays open after **Stop & close**, the page says it's safe to close.
 
 ```text
 .claude-plugin/plugin.json        manifest + user options (userConfig)
@@ -459,7 +461,8 @@ scripts/phone-drop.mjs            server, certificates, config
 scripts/qr-page.mjs               QR page template (shown on the computer)
 scripts/upload-page.mjs           upload page (shown on the phone)
 scripts/gate-page.mjs             passcode lock screen (shown on the phone)
-scripts/brand.mjs                 favicon and credits
+scripts/brand.mjs                 favicon, credits and shared animations
+test/e2e.mjs                      end-to-end tests against the real CLI (npm test)
 docs/render-screenshots.mjs       regenerates docs/images (npm run screenshots)
 docs/render-demo.mjs              regenerates docs/images/demo.gif (npm run demo, needs ffmpeg)
 ```

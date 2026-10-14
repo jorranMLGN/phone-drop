@@ -8,7 +8,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
  * @param {{ title: string, link: string, steps: string[], fileName?: string }} page
  *   `steps` may contain trusted inline HTML (<b>); everything else is escaped.
  */
-export async function renderQrPage({ title, link, steps, fileName, passcode }) {
+export async function renderQrPage({ title, link, steps, fileName, passcode, controlBase, demo }) {
 	const svg = await QRCode.toString(link, { type: "svg", errorCorrectionLevel: "M", margin: 2 });
 	return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title>
@@ -32,12 +32,28 @@ ol{text-align:left;padding-left:20px;margin:20px 0 8px}li{margin:4px 0}
 code{font-size:12px;color:var(--muted);word-break:break-all;display:block;margin-top:12px}
 b{color:var(--accent)}
 .pass{margin:14px auto 0;max-width:300px;font-size:14px;padding:9px 12px;border-radius:12px;background:var(--bg);color:var(--muted)}
+.status{display:inline-flex;align-items:center;gap:8px;margin-top:12px;font-size:13.5px;font-weight:600;padding:6px 12px;border-radius:999px;background:var(--bg);color:var(--muted);animation:pd-fade .5s .3s both}
+.status i{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pd-pulse 1.6s ease-in-out infinite}
+.status.busy i{background:#f0a020}.status.done{color:#22a05b}.status.done i{display:none}.status.stopped i{background:var(--muted);animation:none}
+@keyframes pd-pulse{50%{opacity:.25}}
+.close{margin-top:18px;font:inherit;font-size:14px;font-weight:600;padding:9px 18px;border-radius:10px;border:1px solid color-mix(in srgb,var(--muted) 35%,transparent);background:transparent;color:var(--muted);cursor:pointer;transition:background .15s,color .15s}
+.close:hover{background:var(--bg);color:var(--fg)}
+.bye{display:none;padding:40px 0 20px}.bye b{display:block;font-size:20px;margin-bottom:6px}.bye span{color:var(--muted)}
+body.closed main>*:not(.bye){display:none}body.closed .bye{display:block}
 </style></head><body><main>
 <h1>${esc(title)}</h1>${fileName ? `<div class="file">${esc(fileName)}</div>` : ""}
+${controlBase ? '<div class="status" id="st"><i></i><span>Waiting for your phone…</span></div>' : ""}
 <div class="qr">${svg}</div>${passcode ? '<div class="pass">🔒 Passcode required. The code is shown in Claude, not on this page.</div>' : ""}
 <ol>${steps.map((s) => `<li>${s}</li>`).join("")}</ol>
 <code>${esc(link)}</code>
-</main>${CREDITS}</body></html>`;
+${controlBase ? '<button class="close" id="close">Stop &amp; close</button><div class="bye"><b>Closed</b><span>You can close this tab now.</span></div>' : ""}
+</main>${controlBase && !demo ? `<script>
+const base=${JSON.stringify(controlBase)},st=document.getElementById("st"),btn=document.getElementById("close");let last="waiting";
+function show(s){last=s.state;st.className="status "+s.state;st.querySelector("span").textContent=(s.state==="done"?"✓ ":"")+s.text;btn.textContent=s.state==="done"?"Close":"Stop & close";}
+async function poll(){try{const r=await fetch(base+"status",{cache:"no-store"});show(await r.json());}catch{if(last!=="done")show({state:"stopped",text:"Stopped"});return;}setTimeout(poll,1000);}
+poll();
+btn.onclick=async()=>{try{await fetch(base+"stop",{method:"POST"})}catch{}window.close();setTimeout(()=>document.body.classList.add("closed"),150);};
+</script>` : ""}${CREDITS}</body></html>`;
 }
 
 const cap = (s) => esc(s[0].toUpperCase() + s.slice(1));

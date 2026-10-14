@@ -210,13 +210,33 @@ function resolveApp(file) {
 const fillTemplate = (template, url) => template.replaceAll("{url_encoded}", encodeURIComponent(url)).replaceAll("{url}", url);
 
 // ---------- QR page / server helpers ----------
+// Live status shown on the QR page ("waiting" → "busy" → "done").
+const STATUS = { state: "waiting", text: "Waiting for your phone…" };
+const setStatus = (state, text) => Object.assign(STATUS, { state, text });
+
+// The QR page is served by a tiny server on 127.0.0.1 (never the LAN) behind a random path,
+// so the page can show live status and its "Stop & close" button can end the transfer.
 async function showQrPage(page) {
-	const out = path.join(os.tmpdir(), `phone-drop-${Date.now()}.html`);
-	fs.writeFileSync(out, await renderQrPage(page));
-	if (!NO_BROWSER) openInBrowser(out);
+	const token = crypto.randomBytes(12).toString("hex");
+	const base = `/${token}/`;
+	const html = await renderQrPage({ ...page, controlBase: base });
+	const control = http.createServer((req, res) => {
+		if (req.method === "GET" && req.url === base) return sendHtml(res, html);
+		if (req.method === "GET" && req.url === `${base}status`) return json(res, 200, STATUS);
+		if (req.method === "POST" && req.url === `${base}stop`) {
+			json(res, 200, { ok: true });
+			if (STATUS.state === "done") return;
+			console.log("Stopped from the QR page.");
+			return setTimeout(() => process.exit(3), 200);
+		}
+		res.writeHead(404).end();
+	});
+	await new Promise((resolve) => control.listen(0, "127.0.0.1", resolve));
+	const url = `http://127.0.0.1:${control.address().port}${base}`;
+	if (!NO_BROWSER) openInBrowser(url);
 	// When a person runs this in a terminal, also draw the QR right there.
 	if (process.stdout.isTTY && !flag("no-terminal-qr")) console.log(`\n${await QRCode.toString(page.link, { type: "terminal", small: true })}`);
-	console.log(`QR page: ${out}`);
+	console.log(`QR page: ${url}`);
 }
 
 function openInBrowser(file) {
@@ -307,6 +327,7 @@ function makeGate(passcode) {
 				const who = req.socket.remoteAddress;
 				if (code && sameSecret(code, passcode)) {
 					console.log(`Passcode accepted from ${who}`);
+					setStatus("busy", "Passcode accepted");
 					return json(res, 200, { next: next(key) });
 				}
 				const left = MAX_ATTEMPTS - ++attempts;
@@ -343,6 +364,7 @@ async function setup() {
 		res.end(der, () => {
 			if (req.method === "HEAD") return;
 			console.log("Profile delivered. Finish the steps on the phone (install the profile, then turn on full trust).");
+			setStatus("done", "Profile delivered. Finish the steps on your phone.");
 			timer.stop();
 			setTimeout(() => process.exit(0), 3000);
 		});
@@ -415,6 +437,7 @@ async function send() {
 		let sent = 0;
 		let lastPct = -1;
 		timer.busy();
+		setStatus("busy", "Sending… 0%");
 		const stream = fs.createReadStream(abs);
 		stream.on("data", (chunk) => {
 			sent += chunk.length;
@@ -422,16 +445,19 @@ async function send() {
 			if (pct !== lastPct) {
 				lastPct = pct;
 				console.log(`  ${pct}% (${(sent / 1048576).toFixed(1)} / ${(size / 1048576).toFixed(1)} MB)`);
+				setStatus("busy", `Sending… ${pct}%`);
 			}
 		});
 		res.on("finish", () => {
 			console.log(`Download complete: ${safeName} -> ${who}.${app ? ` ${app.name} will now import it.` : ""}`);
+			setStatus("done", app ? `Sent to ${appName}` : "It's on your phone");
 			timer.stop();
 			setTimeout(() => process.exit(0), 3000);
 		});
 		res.on("close", () => {
 			if (res.writableFinished) return;
 			console.log(`Transfer to ${who} aborted at ${sent} bytes; waiting for a retry.`);
+			setStatus("waiting", "Interrupted. Waiting for a retry…");
 			timer.idle();
 		});
 		stream.pipe(res);
@@ -478,7 +504,9 @@ async function receive() {
 	const finish = (why) => {
 		console.log(`${why} Received ${received.length} file(s) into ${dest}${received.length ? ":" : "."}`);
 		for (const r of received) console.log(`  ${r}`);
-		process.exit(received.length ? 0 : 2);
+		setStatus("done", received.length ? `${received.length} file${received.length === 1 ? "" : "s"} received` : "Nothing received");
+		// Give the QR page a moment to pick up the final status.
+		setTimeout(() => process.exit(received.length ? 0 : 2), 1500);
 	};
 	const timer = startTimeout(minutes, "any upload", () => finish(`Timed out after ${minutes} min.`));
 	const armIdle = () => {
@@ -524,6 +552,7 @@ async function receive() {
 			active++;
 			timer.busy();
 			const target = uniquePath(url.searchParams.get("name") || "upload");
+			setStatus("busy", `Receiving ${path.basename(target)}…`);
 			const partial = `${target}.part`;
 			const out = fs.createWriteStream(partial);
 			let bytes = 0;
@@ -547,6 +576,7 @@ async function receive() {
 				active--;
 				received.push(target);
 				console.log(`Received ${path.basename(target)} (${(bytes / 1048576).toFixed(1)} MB) from ${who}`);
+				setStatus("busy", `${received.length} file${received.length === 1 ? "" : "s"} received`);
 				timer.idle();
 				res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify({ saved: path.basename(target), bytes }));
 				armIdle();

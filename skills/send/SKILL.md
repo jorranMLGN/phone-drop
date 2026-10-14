@@ -38,6 +38,10 @@ The user can change these in `/plugin configure phone-drop@phone-drop`: transpor
 
 If the user asks for a passcode (or one is configured), the QR opens a lock screen on the phone first. Pass `--passcode` for a random 6-digit code, or `--passcode <code>` for a specific one. `--no-passcode` overrides the config for one transfer. The script prints `Passcode: …`. **Always tell the user that code**, because it is deliberately not shown on the QR page. This also works with apps: after unlocking, the page hands off to the app.
 
+## Notes
+
+- The QR page (printed as `QR page: http://127.0.0.1:…`) shows live status and has a **Stop & close** button. If the user stops it there, the script exits with code 3. Tell them it was stopped, not that it failed.
+
 ## Options
 
 `--open <app|template>` (an app name, or a raw template containing `{url}`), `--download`, `--passcode [code]`, `--no-passcode`, `--http` / `--https`, `--ip <addr>`, `--port <n>`, `--timeout <minutes>`, `--no-browser`.

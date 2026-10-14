@@ -3,6 +3,7 @@
 // using XHR for per-file progress.
 
 import { FAVICON, MOTION_CSS } from "./brand.mjs";
+import { resolveTheme, themeCss } from "./themes.mjs";
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
@@ -17,7 +18,7 @@ const ICON = {
 	check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>`,
 };
 
-export function renderUploadPage({ computer, base, secure, key = "" }) {
+export function renderUploadPage({ computer, base, secure, key = "", theme = resolveTheme() }) {
 	return `<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
@@ -31,7 +32,7 @@ html,body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 -apple-sy
 main{max-width:480px;margin:0 auto;padding:max(20px,env(safe-area-inset-top)) 16px calc(120px + env(safe-area-inset-bottom))}
 svg{width:100%;height:100%;display:block}
 header{display:flex;align-items:center;gap:12px;margin:4px 0 22px}
-.logo{width:44px;height:44px;border-radius:13px;padding:10px;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 6px 16px #2563eb40;flex:none}
+.logo{width:44px;height:44px;border-radius:13px;padding:10px;color:var(--on-accent);background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 6px 16px color-mix(in srgb,var(--accent) 25%,transparent);flex:none}
 .brand{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
 h1{font-size:22px;line-height:1.2;margin:1px 0 0;display:flex;align-items:center;gap:7px;min-width:0}
 h1 .ic{width:22px;height:22px;color:var(--accent);flex:none}
@@ -67,12 +68,12 @@ li.err .sub{color:var(--err)}
 li.err button.retry{all:unset;color:var(--accent);font-weight:600;font-size:13px;margin-left:6px;cursor:pointer}
 .dock{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 70%,transparent)}
 .dock div{max-width:480px;margin:0 auto}
-.btn{display:block;width:100%;font:inherit;font-size:17px;font-weight:600;border:0;border-radius:16px;padding:16px;cursor:pointer;color:var(--on-accent);background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 8px 20px #2563eb3d}
+.btn{display:block;width:100%;font:inherit;font-size:17px;font-weight:600;border:0;border-radius:16px;padding:16px;cursor:pointer;color:var(--on-accent);background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 8px 20px color-mix(in srgb,var(--accent) 24%,transparent)}
 .btn:disabled{opacity:.7;box-shadow:none}
 .btn.ghost{background:transparent;color:var(--muted);box-shadow:none;font-weight:500;padding:12px}
 .alert{display:none;margin:14px 2px;padding:12px 14px;border-radius:14px;background:var(--errsoft);color:var(--err);font-size:14px}.alert.on{display:block}
 .finish{display:none;text-align:center;padding:12vh 8px 0}
-.finish .ok{width:84px;height:84px;margin:0 auto 18px;border-radius:50%;padding:20px;color:#fff;background:var(--ok);box-shadow:0 10px 28px #10b9814d;animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+.finish .ok{width:84px;height:84px;margin:0 auto 18px;border-radius:50%;padding:20px;color:#fff;background:var(--ok);box-shadow:0 10px 28px color-mix(in srgb,var(--ok) 30%,transparent);animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
 @keyframes pop{from{transform:scale(.3);opacity:0}}
 .finish h2{margin:0 0 6px;font-size:24px}.finish p{margin:0;color:var(--muted)}
 body.done main>*:not(.finish),body.done .dock{display:none}body.done .finish{display:block}
@@ -85,6 +86,7 @@ header{animation:pd-rise .5s cubic-bezier(.2,.8,.2,1) both}
 body.busy .total i{animation:pd-shimmer 1.4s linear infinite}
 @keyframes pd-shimmer{to{background-position:-200% 0}}
 .finish h2,.finish p{animation:pd-rise .5s .15s cubic-bezier(.2,.8,.2,1) both}
+${themeCss(theme)}
 </style></head><body><main>
 <header>
 <div class="logo">${ICON.logo}</div>

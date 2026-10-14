@@ -23,6 +23,8 @@ If the user asks for a passcode (or one is configured), the phone has to enter i
 
 ## Notes
 
+- Colors: if the user asks for a look ("in green", "dark and minimal"), pass `--theme <ocean|violet|mint|sunset|mono>` or `--theme "#hex[,#hex]"`. The default comes from the *Color theme* / *Custom colors* settings.
+
 - The QR page (printed as `QR page: http://127.0.0.1:…`) shows live status, a live **Received** list with an **Open folder** button, and a **Stop & close** button. If the user stops it there, the script exits with code 3. Tell them it was stopped, not that it failed.
 - Files are never overwritten: `photo.jpg` becomes `photo (1).jpg` if a file with that name already exists. Incomplete uploads are discarded.
 - `--max-mb <n>` limits the size per file. `--http` / `--https` force a transport.

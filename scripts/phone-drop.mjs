@@ -14,6 +14,7 @@ import QRCode from "qrcode";
 import { renderQrPage, STEPS } from "./qr-page.mjs";
 import { renderUploadPage } from "./upload-page.mjs";
 import { renderGatePage } from "./gate-page.mjs";
+import { DEFAULT_THEME, THEMES, customTheme, resolveTheme } from "./themes.mjs";
 
 const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const STATE_DIR = path.join(os.homedir(), ".phone-drop");
@@ -69,10 +70,17 @@ function loadConfig() {
 		autoOpen: Object.fromEntries(Object.entries(pairs(config.auto_open)).map(([ext, app]) => [ext.replace(/^\./, ""), app.toLowerCase()])),
 		timeout: Number(config.timeout_minutes) || 15,
 		passcode: typeof config.passcode === "string" ? config.passcode.trim() : "",
+		theme: typeof config.theme === "string" && config.theme.trim() ? config.theme.trim() : DEFAULT_THEME,
+		customColors: typeof config.custom_colors === "string" ? config.custom_colors.trim() : "",
 		receiveDir: typeof config.receive_dir === "string" && config.receive_dir.trim() ? config.receive_dir.trim().replace(/^~(?=$|[\\/])/, os.homedir()) : path.join(os.homedir(), "Downloads"),
 	};
 }
 const CONFIG = loadConfig();
+// --theme <name|#hex[,#hex]> wins over the config; custom colors win over the configured theme name.
+const THEME_FLAG = opt("theme");
+if (THEME_FLAG && !THEMES[THEME_FLAG.toLowerCase()] && !customTheme(THEME_FLAG)) die(`Unknown theme "${THEME_FLAG}". Use one of: ${Object.keys(THEMES).join(", ")}, or hex colors like "#e11d48" or "#e11d48,#f59e0b".`);
+if (!THEME_FLAG && CONFIG.customColors && !customTheme(CONFIG.customColors)) console.error(`Warning: ignoring custom colors "${CONFIG.customColors}" (use "#rrggbb" or "#rrggbb,#rrggbb").`);
+const THEME = THEME_FLAG ? resolveTheme(THEME_FLAG) : resolveTheme(CONFIG.theme, CONFIG.customColors);
 
 // ---------- openssl ----------
 let OPENSSL;
@@ -221,7 +229,7 @@ const setStatus = (state, text) => Object.assign(STATUS, { state, text });
 async function showQrPage(page) {
 	const token = crypto.randomBytes(12).toString("hex");
 	const base = `/${token}/`;
-	const html = await renderQrPage({ ...page, controlBase: base, createdAt: new Date(), timeoutMin: Number(opt("timeout", CONFIG.timeout)) });
+	const html = await renderQrPage({ ...page, controlBase: base, createdAt: new Date(), timeoutMin: Number(opt("timeout", CONFIG.timeout)), theme: THEME });
 	const control = http.createServer((req, res) => {
 		if (req.method === "GET" && req.url === base) return sendHtml(res, html);
 		if (req.method === "GET" && req.url === `${base}status`) return json(res, 200, STATUS);
@@ -419,7 +427,7 @@ async function send() {
 		const url = new URL(req.url, "http://x");
 		if (gate && req.method === "GET" && url.pathname === base) {
 			console.log(`Passcode screen opened by ${who}`);
-			return sendHtml(res, renderGatePage({ computer: os.hostname(), base, numeric: gate.numeric, what: app ? `opening ${safeName} in ${appName}` : `downloading ${safeName}` }));
+			return sendHtml(res, renderGatePage({ computer: os.hostname(), base, numeric: gate.numeric, what: app ? `opening ${safeName} in ${appName}` : `downloading ${safeName}`, theme: THEME }));
 		}
 		if (gate && req.method === "POST" && url.pathname === `${base}unlock`) {
 			return gate.unlock(req, res, (key) => finalLink(`${fileUrl}?k=${key}`));
@@ -535,10 +543,10 @@ async function receive() {
 		if (req.method === "GET" && url.pathname === base) {
 			if (gate && !gate.ok(req, url)) {
 				console.log(`Passcode screen opened by ${who}`);
-				return sendHtml(res, renderGatePage({ computer: os.hostname(), base, numeric: gate.numeric, what: "receiving files" }));
+				return sendHtml(res, renderGatePage({ computer: os.hostname(), base, numeric: gate.numeric, what: "receiving files", theme: THEME }));
 			}
 			console.log(`Upload page opened by ${who}`);
-			return sendHtml(res, renderUploadPage({ computer: os.hostname(), base, secure, key: gate ? gate.key : "" }));
+			return sendHtml(res, renderUploadPage({ computer: os.hostname(), base, secure, key: gate ? gate.key : "", theme: THEME }));
 		}
 		if (gate && req.method === "POST" && url.pathname === `${base}unlock`) {
 			return gate.unlock(req, res, (key) => `${base}?k=${key}`);
@@ -613,6 +621,7 @@ function status() {
 	console.log(`Transport   : ${CONFIG.transport}`);
 	console.log(`Timeout     : ${CONFIG.timeout} min`);
 	console.log(`Receive to  : ${CONFIG.receiveDir}`);
+	console.log(`Theme       : ${THEME_FLAG || (CONFIG.customColors && customTheme(CONFIG.customColors) ? `custom (${CONFIG.customColors})` : CONFIG.theme)}`);
 	console.log(`Passcode    : ${!CONFIG.passcode ? "off" : CONFIG.passcode.toLowerCase() === "random" ? "random 6-digit code per transfer" : "fixed code (set in config)"}`);
 	console.log(`LAN IP      : ${pickLanIp()}`);
 	apps();
@@ -655,8 +664,9 @@ Options
   --timeout <minutes>     stop after this long with nothing transferred (default 15)
   --no-browser            don't open the QR page in the browser
   --no-terminal-qr        don't draw the QR code in the terminal
+  --theme <name|#hex>     page colors: ocean, violet, mint, sunset, mono, or "#e11d48[,#f59e0b]"
 
-Settings: ${CONFIG_FILE}  (keys: transport, apps, auto_open, receive_dir, passcode, timeout_minutes)
+Settings: ${CONFIG_FILE}  (keys: transport, apps, auto_open, receive_dir, passcode, theme, custom_colors, timeout_minutes)
 Docs:     https://github.com/jorranMLGN/phone-drop`;
 
 if (flag("version") || cmd === "-v") {

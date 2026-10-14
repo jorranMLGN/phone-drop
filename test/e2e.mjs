@@ -147,6 +147,25 @@ check("receive: QR page shows done before exit", st.state === "done", JSON.strin
 check("receive: exit 0", (await s.exit) === 0);
 check("receive: file saved", fs.readFileSync(path.join(dest, "x.txt"), "utf8") === "hello");
 
+// --- themes
+s = await start(["receive", "--to", path.join(TMP, "themed"), "--theme", "mint"]);
+r = await req("GET", s.link);
+check("theme: --theme mint colors the phone page", /--accent:#059669/.test(r.body) && /--accent:#34d399/.test(r.body));
+r = await req("GET", s.page);
+check("theme: QR page gets the accent too", /--accent:#059669/.test(r.body));
+await req("POST", `${s.page}stop`);
+await s.exit;
+s = await start(["receive", "--to", path.join(TMP, "themed"), "--theme", "#e11d48,#f59e0b"]);
+r = await req("GET", s.link);
+check("theme: custom hex colors", /--accent:#e11d48/.test(r.body) && /--accent2:#f59e0b/.test(r.body));
+await req("POST", `${s.page}stop`);
+await s.exit;
+s = await start(["receive", "--to", path.join(TMP, "themed")]);
+r = await req("GET", s.link);
+check("theme: default is ocean", /--accent:#2563eb/.test(r.body));
+await req("POST", `${s.page}stop`);
+await s.exit;
+
 // --- no passcode
 s = await start(["send", file, "--download", "--no-passcode"]);
 check("no passcode: QR link is the file itself", s.link.endsWith("secret.bin") && !s.code);

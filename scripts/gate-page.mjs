@@ -2,12 +2,13 @@
 // On success the server answers with the URL to continue to (download, app link or upload page).
 
 import { FAVICON, MOTION_CSS } from "./brand.mjs";
+import { resolveTheme, themeCss } from "./themes.mjs";
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 const LOCK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="16" r="1.2" fill="currentColor"/></svg>`;
 
-export function renderGatePage({ computer, base, numeric, what }) {
+export function renderGatePage({ computer, base, numeric, what, theme = resolveTheme() }) {
 	return `<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
@@ -19,7 +20,7 @@ ${FAVICON}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font:16px/1.45 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif}
 main{max-width:420px;margin:0 auto;padding:max(12vh,env(safe-area-inset-top)) 20px 40px;text-align:center}
-.lock{width:76px;height:76px;margin:0 auto 18px;border-radius:24px;padding:18px;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 10px 28px #2563eb4d}
+.lock{width:76px;height:76px;margin:0 auto 18px;border-radius:24px;padding:18px;color:var(--on-accent);background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 10px 28px color-mix(in srgb,var(--accent) 30%,transparent)}
 svg{width:100%;height:100%;display:block}
 h1{font-size:24px;margin:0 0 6px}p{margin:0 0 26px;color:var(--muted)}
 form{background:var(--card);border-radius:22px;padding:22px;box-shadow:var(--shadow)}
@@ -37,6 +38,7 @@ h1,main>p{animation:pd-fade .5s .1s both}
 form{animation:pd-rise .5s .15s cubic-bezier(.2,.8,.2,1) both;transition:box-shadow .3s}
 form.ok{box-shadow:0 0 0 3px #10b98155,var(--shadow)}form.ok input{border-color:#10b981}
 .foot{animation:pd-fade .6s .4s both}
+${themeCss(theme)}
 </style></head><body><main>
 <div class="lock">${LOCK}</div>
 <h1>Enter passcode</h1>

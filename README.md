@@ -358,6 +358,8 @@ When I ask to send/put a file on my phone, or to get/upload files from my phone:
   "auto_open": ["ipa=feather", "tipa=feather"],
   "receive_dir": "~/Downloads",
   "passcode": "",
+  "theme": "ocean",
+  "custom_colors": "",
   "timeout_minutes": 15
 }
 ```
@@ -375,7 +377,15 @@ When I ask to send/put a file on my phone, or to get/upload files from my phone:
 | **Auto-open by file type** | `ipa=feather`, `tipa=feather` | `extension=app`. Matching files open in that app instead of downloading. Remove all entries to always download. |
 | **Receive folder** | your Downloads folder | Where uploads from your phone are saved. |
 | **Passcode** | *(empty: off)* | `random`: new 6-digit code per transfer. Any other value: that fixed code (stored in plain text in settings.json). |
+| **Color theme** | `ocean` | Colors of the pages on your phone (and the accent on the QR page): `ocean`, `violet`, `mint`, `sunset` or `mono`. |
+| **Custom colors** | *(empty)* | Your own accent: one or two hex codes, e.g. `#e11d48` or `#e11d48,#f59e0b`. Overrides the theme. |
 | **Timeout (minutes)** | `15` | Stop serving if nothing is transferred. |
+
+### Themes
+
+<p align="center"><img src="docs/images/themes.png" alt="The phone upload page in the five themes (ocean, violet, mint, sunset, mono) and with custom colors #e11d48,#f59e0b"></p>
+
+Pick one in the settings, ask Claude (*"send it to my phone, in green"*), or pass `--theme mint` / `--theme "#e11d48,#f59e0b"` once. Every theme has a light and a dark variant that follows the phone's appearance setting.
 
 Claude Code saves these in your `settings.json` under `pluginConfigs`, and the script reads them from there. Restart Claude Code after you change them. If both exist, the Claude Code settings win over `config.json`, and command-line flags win over both.
 
@@ -447,6 +457,7 @@ phone-drop --help | --version
 | `--port <n>` | `8443` (HTTPS), `8080` (HTTP, setup) | |
 | `--timeout <min>` | `15` | stop after this long with nothing being transferred (never during a transfer) |
 | `--no-browser` | off | don't open the QR page (its path is still printed) |
+| `--theme <name|#hex[,#hex]>` | *Color theme* setting | `ocean`, `violet`, `mint`, `sunset`, `mono`, or your own hex colors |
 | `--no-terminal-qr` | off | don't draw the QR code in the terminal (only drawn when run in a real terminal) |
 
 Exit codes: `0` delivered/received, `1` error, `2` timed out (nothing transferred), `3` stopped with the QR page's **Stop & close** button.

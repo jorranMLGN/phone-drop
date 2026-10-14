@@ -40,6 +40,8 @@ If the user asks for a passcode (or one is configured), the QR opens a lock scre
 
 ## Notes
 
+- Colors: if the user asks for a look ("in green", "dark and minimal"), pass `--theme <ocean|violet|mint|sunset|mono>` or `--theme "#hex[,#hex]"`. The default comes from the *Color theme* / *Custom colors* settings.
+
 - The QR page (printed as `QR page: http://127.0.0.1:…`) shows live status and has a **Stop & close** button. If the user stops it there, the script exits with code 3. Tell them it was stopped, not that it failed.
 
 ## Options

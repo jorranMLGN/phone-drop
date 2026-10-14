@@ -1,6 +1,6 @@
 {
   "name": "phone-drop",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "AirDrop for your terminal and AI agents: move files between your computer and your phone with one QR scan over local Wi-Fi. No app, no cloud, no file size limit.",
   "keywords": [
     "phone",

@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { renderQrPage, STEPS } from "../scripts/qr-page.mjs";
 import { renderUploadPage } from "../scripts/upload-page.mjs";
 import { renderGatePage } from "../scripts/gate-page.mjs";
+import { THEMES, customTheme } from "../scripts/themes.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pagesDir = path.join(here, "pages");
@@ -74,6 +75,19 @@ const shoot = (html, png, scheme, size) => {
 for (const scheme of ["light", "dark"]) {
 	const html = phoneDemo(renderUploadPage({ computer: "MY-LAPTOP", base: "/demo/", secure: true }));
 	shoot(html, path.join(imagesDir, `phone-upload${scheme === "dark" ? "-dark" : ""}.png`), scheme, "500,800");
+}
+
+// Theme gallery: the upload page in every preset plus a custom color, side by side.
+{
+	const variants = [...Object.keys(THEMES).map((n) => [n, THEMES[n]]), ["#e11d48,#f59e0b", customTheme("#e11d48,#f59e0b")]];
+	const frames = variants
+		.map(([name, theme]) => {
+			const src = phoneDemo(renderUploadPage({ computer: "MY-LAPTOP", base: "/demo/", secure: true, theme })).replace("</head>", "<style>*,*::before,*::after{animation:none!important;transition:none!important}</style></head>");
+			return `<figure><iframe srcdoc="${src.replace(/&/g, "&amp;").replace(/"/g, "&quot;")}"></iframe><figcaption>${name}</figcaption></figure>`;
+		})
+		.join("");
+	const gallery = `<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;padding:24px;display:flex;gap:18px;background:#ececf1;font:600 15px system-ui,sans-serif;color:#333}figure{margin:0;text-align:center}iframe{width:390px;height:620px;border:0;border-radius:22px;box-shadow:0 8px 24px #0002;transform:scale(.62);transform-origin:top left;margin-right:-148px;margin-bottom:-236px;display:block}figcaption{margin-top:10px}</style></head><body>${frames}</body></html>`;
+	shoot(gallery, path.join(imagesDir, "themes.png"), "light", "1640,470");
 }
 
 for (const scheme of ["light", "dark"]) {

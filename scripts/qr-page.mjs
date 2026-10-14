@@ -1,6 +1,7 @@
 // Renders the QR page that the computer shows for the phone to scan.
 import QRCode from "qrcode";
 import { CREDITS, CREDITS_CSS, FAVICON, MOTION_CSS } from "./brand.mjs";
+import { resolveTheme, themeCss } from "./themes.mjs";
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
@@ -8,7 +9,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
  * @param {{ title: string, link: string, steps: string[], fileName?: string }} page
  *   `steps` may contain trusted inline HTML (<b>); everything else is escaped.
  */
-export async function renderQrPage({ title, link, steps, fileName, passcode, controlBase, demo, createdAt, timeoutMin, receive, demoFiles }) {
+export async function renderQrPage({ title, link, steps, fileName, passcode, controlBase, demo, createdAt, timeoutMin, receive, demoFiles, theme = resolveTheme() }) {
 	const created = createdAt ? new Date(createdAt) : null;
 	const svg = await QRCode.toString(link, { type: "svg", errorCorrectionLevel: "M", margin: 2 });
 	return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -50,6 +51,7 @@ b{color:var(--accent)}
 .files .open{margin-top:10px;font:inherit;font-size:13px;font-weight:600;padding:7px 12px;border-radius:9px;border:0;background:var(--bg);color:var(--accent);cursor:pointer}
 .bye{display:none;padding:40px 0 20px}.bye b{display:block;font-size:20px;margin-bottom:6px}.bye span{color:var(--muted)}
 body.closed main>*:not(.bye){display:none}body.closed .bye{display:block}
+${themeCss(theme, { full: false })}
 </style></head><body><main>
 <h1>${esc(title)}</h1>${fileName ? `<div class="file">${esc(fileName)}</div>` : ""}
 ${controlBase ? '<div class="status" id="st"><i></i><span>Waiting for your phone…</span></div>' : ""}

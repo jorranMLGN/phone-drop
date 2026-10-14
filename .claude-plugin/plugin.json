@@ -1,6 +1,6 @@
 {
   "name": "phone-drop",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Drop files between your computer and your phone over local Wi-Fi: scan a QR code to download to the phone or upload from it. Optional 'open in app' handlers, with Feather (.ipa sideloading) built in.",
   "author": {
     "name": "jorranMLGN",
@@ -61,6 +61,25 @@
       "type": "string",
       "title": "Passcode",
       "description": "Ask for a passcode on the phone before any transfer. Leave empty for none, \"random\" for a new 6-digit code every transfer (Claude tells you the code), or type your own fixed code. A fixed code is stored in plain text in settings.json.",
+      "default": ""
+    },
+    "theme": {
+      "type": "string",
+      "title": "Color theme",
+      "description": "Colors of the pages on your phone (and the accent on the QR page). ocean = blue/cyan, violet = purple, mint = green, sunset = orange/pink, mono = black/white.",
+      "options": [
+        "ocean",
+        "violet",
+        "mint",
+        "sunset",
+        "mono"
+      ],
+      "default": "ocean"
+    },
+    "custom_colors": {
+      "type": "string",
+      "title": "Custom colors",
+      "description": "Optional: your own accent colors as one or two hex codes, e.g. #e11d48 or #e11d48,#f59e0b. Overrides the color theme. Leave empty to use the theme.",
       "default": ""
     },
     "timeout_minutes": {
